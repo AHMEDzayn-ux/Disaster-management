@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { useMissingPersonStore } from '../store';
 import LocationPicker from './LocationPicker';
 
-function MissingPersonForm() {
-    const { register, handleSubmit, formState: { errors }, reset, control } = useForm();
-    const { addMissingPerson } = useMissingPersonStore();
+function AnimalRescueForm() {
+    const { register, handleSubmit, formState: { errors }, reset, watch, control } = useForm();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitSuccess, setSubmitSuccess] = useState(false);
     const [photoPreview, setPhotoPreview] = useState(null);
+
+    const isDangerous = watch('isDangerous');
 
     const handlePhotoChange = (e) => {
         const file = e.target.files[0];
@@ -34,16 +34,18 @@ function MissingPersonForm() {
         setSubmitSuccess(false);
 
         try {
-            // Add photo to data if exists
             const newReport = {
                 id: Date.now(),
                 ...data,
                 photo: photoPreview,
-                status: 'Active',
+                status: 'Pending',
                 reportedAt: new Date().toISOString(),
             };
 
-            addMissingPerson(newReport);
+            // Store locally (will sync when online)
+            const existingReports = JSON.parse(localStorage.getItem('animalRescueReports') || '[]');
+            existingReports.push(newReport);
+            localStorage.setItem('animalRescueReports', JSON.stringify(existingReports));
 
             // Show success message
             setSubmitSuccess(true);
@@ -63,20 +65,20 @@ function MissingPersonForm() {
         <div className="max-w-3xl mx-auto">
             <div className="card">
                 <h2 className="text-2xl font-bold text-gray-800 mb-6">
-                    Report Missing Person
+                    🐾 Animal Rescue Report
                 </h2>
 
                 {submitSuccess && (
                     <div className="bg-success-100 border border-success-500 text-success-700 px-4 py-3 rounded mb-4">
-                        ✅ Report submitted successfully!
+                        ✅ Report submitted successfully! Rescue team will be notified.
                     </div>
                 )}
 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                    {/* Photo Upload - Most Important */}
+                    {/* Photo Upload - Primary Identification */}
                     <div>
                         <h3 className="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">
-                            📸 Photo (Primary Identification)
+                            📸 Photo
                         </h3>
 
                         <div className="flex flex-col md:flex-row gap-4 items-start">
@@ -88,7 +90,7 @@ function MissingPersonForm() {
                                     type="file"
                                     accept="image/*"
                                     {...register('photo', {
-                                        required: 'Photo is required for identification'
+                                        required: 'Photo helps rescue team identify the animal'
                                     })}
                                     onChange={handlePhotoChange}
                                     className="input-field"
@@ -99,7 +101,7 @@ function MissingPersonForm() {
                                     </span>
                                 )}
                                 <p className="text-sm text-gray-500 mt-1">
-                                    Clear, recent photo (max 5MB). Works offline.
+                                    Clear photo showing the animal (max 5MB)
                                 </p>
                             </div>
 
@@ -115,106 +117,161 @@ function MissingPersonForm() {
                         </div>
                     </div>
 
-                    {/* Basic Information */}
+                    {/* Animal Information */}
                     <div>
                         <h3 className="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">
-                            Basic Information
+                            Animal Information
                         </h3>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-gray-700 font-medium mb-2">
-                                    Name <span className="text-danger-500">*</span>
+                                    Animal Type <span className="text-danger-500">*</span>
                                 </label>
-                                <input
-                                    {...register('name', {
-                                        required: 'Name is required',
-                                        minLength: { value: 2, message: 'Minimum 2 characters' }
-                                    })}
+                                <select
+                                    {...register('animalType', { required: 'Animal type is required' })}
                                     className="input-field"
-                                    placeholder="Enter name"
-                                />
-                                {errors.name && (
+                                >
+                                    <option value="">Select type</option>
+                                    <option value="dog">Dog</option>
+                                    <option value="cat">Cat</option>
+                                    <option value="cattle">Cattle (Cow/Buffalo)</option>
+                                    <option value="goat">Goat/Sheep</option>
+                                    <option value="bird">Bird</option>
+                                    <option value="wildlife">Other Wildlife</option>
+                                    <option value="other">Other</option>
+                                </select>
+                                {errors.animalType && (
                                     <span className="text-danger-500 text-sm mt-1 block">
-                                        {errors.name.message}
+                                        {errors.animalType.message}
                                     </span>
                                 )}
                             </div>
 
                             <div>
                                 <label className="block text-gray-700 font-medium mb-2">
-                                    Age <span className="text-danger-500">*</span>
+                                    Size/Breed (if known)
                                 </label>
                                 <input
-                                    type="number"
-                                    {...register('age', {
-                                        required: 'Age is required',
-                                        min: { value: 0, message: 'Invalid age' },
-                                        max: { value: 150, message: 'Invalid age' }
-                                    })}
+                                    {...register('breed')}
                                     className="input-field"
-                                    placeholder="Enter age"
+                                    placeholder="e.g., Large dog, Small cat"
                                 />
-                                {errors.age && (
-                                    <span className="text-danger-500 text-sm mt-1 block">
-                                        {errors.age.message}
-                                    </span>
-                                )}
-                            </div>
-
-                            <div className="md:col-span-2">
-                                <label className="block text-gray-700 font-medium mb-2">
-                                    Gender <span className="text-danger-500">*</span>
-                                </label>
-                                <select
-                                    {...register('gender', { required: 'Gender is required' })}
-                                    className="input-field"
-                                >
-                                    <option value="">Select gender</option>
-                                    <option value="male">Male</option>
-                                    <option value="female">Female</option>
-                                    <option value="other">Other</option>
-                                </select>
-                                {errors.gender && (
-                                    <span className="text-danger-500 text-sm mt-1 block">
-                                        {errors.gender.message}
-                                    </span>
-                                )}
                             </div>
                         </div>
 
                         <div className="mt-4">
                             <label className="block text-gray-700 font-medium mb-2">
-                                Description (Optional)
+                                Description <span className="text-danger-500">*</span>
                             </label>
                             <textarea
-                                {...register('description')}
+                                {...register('description', {
+                                    required: 'Description is required'
+                                })}
                                 className="input-field"
                                 rows="2"
-                                placeholder="Clothing, distinguishing features, etc."
+                                placeholder="Color, markings, condition, etc."
                             />
+                            {errors.description && (
+                                <span className="text-danger-500 text-sm mt-1 block">
+                                    {errors.description.message}
+                                </span>
+                            )}
                         </div>
                     </div>
 
-                    {/* Last Seen */}
+                    {/* Safety Information */}
                     <div>
                         <h3 className="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">
-                            Last Seen
+                            ⚠️ Safety Information
+                        </h3>
+
+                        <div className="space-y-4">
+                            <div className="flex items-start gap-3">
+                                <input
+                                    type="checkbox"
+                                    {...register('isDangerous')}
+                                    className="mt-1 w-5 h-5 text-danger-500 focus:ring-danger-500"
+                                />
+                                <div>
+                                    <label className="text-gray-700 font-medium">
+                                        Animal is dangerous or may bite
+                                    </label>
+                                    <p className="text-sm text-gray-500">
+                                        Check if the animal shows aggressive behavior
+                                    </p>
+                                </div>
+                            </div>
+
+                            {isDangerous && (
+                                <div className="bg-danger-50 border-l-4 border-danger-500 p-4 rounded">
+                                    <p className="text-danger-700 font-medium mb-2">
+                                        ⚠️ Warning: Professional rescue team required
+                                    </p>
+                                    <textarea
+                                        {...register('dangerDetails')}
+                                        className="input-field mt-2"
+                                        rows="2"
+                                        placeholder="Describe the danger: aggressive, biting, venomous, etc."
+                                    />
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="block text-gray-700 font-medium mb-2">
+                                    Condition <span className="text-danger-500">*</span>
+                                </label>
+                                <select
+                                    {...register('condition', { required: 'Condition is required' })}
+                                    className="input-field"
+                                >
+                                    <option value="">Select condition</option>
+                                    <option value="healthy">Healthy/Unharmed</option>
+                                    <option value="injured">Injured</option>
+                                    <option value="trapped">Trapped</option>
+                                    <option value="sick">Sick/Weak</option>
+                                    <option value="critical">Critical Condition</option>
+                                </select>
+                                {errors.condition && (
+                                    <span className="text-danger-500 text-sm mt-1 block">
+                                        {errors.condition.message}
+                                    </span>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="block text-gray-700 font-medium mb-2">
+                                    Injury/Health Details (Optional)
+                                </label>
+                                <textarea
+                                    {...register('healthDetails')}
+                                    className="input-field"
+                                    rows="2"
+                                    placeholder="Describe any visible injuries or health issues"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Location */}
+                    <div>
+                        <h3 className="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">
+                            Location
                         </h3>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="md:col-span-2">
                                 <Controller
-                                    name="lastSeenLocation"
+                                    name="location"
                                     control={control}
-                                    rules={{ required: 'Location is required' }}
+                                    rules={{ required: 'Location is required for rescue' }}
                                     render={({ field }) => (
                                         <LocationPicker
                                             value={field.value}
                                             onChange={field.onChange}
-                                            label="Last Seen Location"
+                                            label="Current Location"
                                             required
-                                            error={errors.lastSeenLocation?.message}
+                                            error={errors.location?.message}
                                         />
                                     )}
                                 />
@@ -222,20 +279,27 @@ function MissingPersonForm() {
 
                             <div>
                                 <label className="block text-gray-700 font-medium mb-2">
-                                    Date & Time <span className="text-danger-500">*</span>
+                                    Accessibility
+                                </label>
+                                <select
+                                    {...register('accessibility')}
+                                    className="input-field"
+                                >
+                                    <option value="easy">Easy Access</option>
+                                    <option value="moderate">Moderate (needs tools)</option>
+                                    <option value="difficult">Difficult (special equipment needed)</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-gray-700 font-medium mb-2">
+                                    Date & Time Spotted
                                 </label>
                                 <input
                                     type="datetime-local"
-                                    {...register('lastSeenDate', {
-                                        required: 'Date is required'
-                                    })}
+                                    {...register('spottedDate')}
                                     className="input-field"
                                 />
-                                {errors.lastSeenDate && (
-                                    <span className="text-danger-500 text-sm mt-1 block">
-                                        {errors.lastSeenDate.message}
-                                    </span>
-                                )}
                             </div>
                         </div>
                     </div>
@@ -290,19 +354,6 @@ function MissingPersonForm() {
                         </div>
                     </div>
 
-                    {/* Additional Info */}
-                    <div>
-                        <label className="block text-gray-700 font-medium mb-2">
-                            Additional Information (Optional)
-                        </label>
-                        <textarea
-                            {...register('additionalInfo')}
-                            className="input-field"
-                            rows="2"
-                            placeholder="Any other details that might help..."
-                        />
-                    </div>
-
                     {/* Submit Buttons */}
                     <div className="flex flex-col sm:flex-row gap-3">
                         <button
@@ -310,7 +361,7 @@ function MissingPersonForm() {
                             disabled={isSubmitting}
                             className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {isSubmitting ? 'Submitting...' : '📤 Submit Report'}
+                            {isSubmitting ? 'Submitting...' : '📤 Submit Rescue Request'}
                         </button>
                         <button
                             type="button"
@@ -333,4 +384,4 @@ function MissingPersonForm() {
     );
 }
 
-export default MissingPersonForm;
+export default AnimalRescueForm;

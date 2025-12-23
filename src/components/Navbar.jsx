@@ -33,25 +33,31 @@ function Navbar({ userType = 'reporter' }) {
 
     return (
         <nav className={`${navColor} shadow-lg`}>
-            <div className="container mx-auto px-4">
+            <div className="px-4">
                 <div className="flex justify-between items-center py-4">
-                    <Link to="/" className="text-white text-xl md:text-2xl font-bold flex items-center gap-2">
-                        {userType === 'reporter' ? '📢' : '🤝'}
-                        <span className="hidden sm:inline">Disaster Management</span>
-                        <span className="sm:hidden">DM SL</span>
-                    </Link>
-
-                    {/* User Type Badge */}
-                    <div className="hidden lg:flex items-center gap-3">
-                        <span className="text-white/80 text-sm">
-                            {userType === 'reporter' ? 'Report Mode' : 'Respond Mode'}
-                        </span>
-                        <Link
-                            to="/"
-                            className="text-white/90 hover:text-white text-sm underline"
-                        >
-                            Switch
+                    {/* Logo - Left aligned */}
+                    <div className="flex-shrink-0">
+                        <Link to="/" className="text-white text-xl md:text-2xl font-bold flex items-center gap-2">
+                            {userType === 'reporter' ? '📢' : '🤝'}
+                            <span className="hidden sm:inline">Disaster Management - {userType === 'reporter' ? 'Reporting' : 'Responding'}</span>
+                            <span className="sm:hidden">DM SL</span>
                         </Link>
+                    </div>
+
+                    {/* Desktop menu - Right aligned */}
+                    <div className="hidden md:flex items-center space-x-2 ml-auto">
+                        {navLinks.map((link) => (
+                            <Link
+                                key={link.path}
+                                to={link.path}
+                                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive(link.path)
+                                    ? `${navColorHover} text-white`
+                                    : `text-white/90 hover:${navColorLight} hover:text-white`
+                                    }`}
+                            >
+                                {link.label}
+                            </Link>
+                        ))}
                     </div>
 
                     {/* Mobile menu button */}
@@ -67,22 +73,6 @@ function Navbar({ userType = 'reporter' }) {
                             )}
                         </svg>
                     </button>
-
-                    {/* Desktop menu */}
-                    <div className="hidden md:flex space-x-1">
-                        {navLinks.map((link) => (
-                            <Link
-                                key={link.path}
-                                to={link.path}
-                                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive(link.path)
-                                        ? `${navColorHover} text-white`
-                                        : `text-white/90 hover:${navColorLight} hover:text-white`
-                                    }`}
-                            >
-                                {link.label}
-                            </Link>
-                        ))}
-                    </div>
                 </div>
 
                 {/* Mobile menu */}
@@ -94,8 +84,8 @@ function Navbar({ userType = 'reporter' }) {
                                 to={link.path}
                                 onClick={() => setIsOpen(false)}
                                 className={`block px-3 py-2 rounded-md text-base font-medium ${isActive(link.path)
-                                        ? `${navColorHover} text-white`
-                                        : `text-white/90 hover:${navColorLight} hover:text-white`
+                                    ? `${navColorHover} text-white`
+                                    : `text-white/90 hover:${navColorLight} hover:text-white`
                                     }`}
                             >
                                 {link.label}
