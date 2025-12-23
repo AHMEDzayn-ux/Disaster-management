@@ -58,6 +58,16 @@ function Navbar({ userType = 'reporter' }) {
                                 {link.label}
                             </Link>
                         ))}
+
+                        {/* Mode Switcher */}
+                        <div className="ml-4 pl-4 border-l border-white/30">
+                            <Link
+                                to={userType === 'reporter' ? '/respond' : '/report'}
+                                className="px-3 py-2 rounded-md text-sm font-medium bg-white/20 hover:bg-white/30 text-white transition-colors flex items-center gap-2"
+                            >
+                                {userType === 'reporter' ? '🤝 Switch to Responder' : '📢 Switch to Reporter'}
+                            </Link>
+                        </div>
                     </div>
 
                     {/* Mobile menu button */}
@@ -92,7 +102,16 @@ function Navbar({ userType = 'reporter' }) {
                             </Link>
                         ))}
 
-                        {/* Mobile Switch Mode */}
+                        {/* Mobile Mode Switcher */}
+                        <Link
+                            to={userType === 'reporter' ? '/respond' : '/report'}
+                            onClick={() => setIsOpen(false)}
+                            className="block px-3 py-2 mt-4 pt-4 border-t border-white/20 rounded-md text-base font-medium bg-white/20 hover:bg-white/30 text-white"
+                        >
+                            {userType === 'reporter' ? '🤝 Switch to Responder' : '📢 Switch to Reporter'}
+                        </Link>
+
+                        {/* Mobile Home Link */}
                         <Link
                             to="/"
                             onClick={() => setIsOpen(false)}

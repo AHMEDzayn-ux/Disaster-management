@@ -1,0 +1,483 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAnimalRescueStore } from '../store';
+import { MapContainer, TileLayer, Marker, Popup, Rectangle, useMap } from 'react-leaflet';
+import MarkerClusterGroup from 'react-leaflet-cluster';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// Fix leaflet default marker icon
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
+
+// Custom marker icons for different statuses
+const activeIcon = new L.Icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
+
+const resolvedIcon = new L.Icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
+
+// Approximate district boundaries for Sri Lanka (expanded to cover full districts)
+const districtBounds = {
+    'Colombo': [[6.80, 79.80], [7.15, 80.00]],
+    'Gampaha': [[6.95, 79.85], [7.35, 80.10]],
+    'Kalutara': [[6.45, 79.90], [6.80, 80.30]],
+    'Kandy': [[7.05, 80.45], [7.55, 80.85]],
+    'Matale': [[7.35, 80.45], [7.85, 80.85]],
+    'Nuwara Eliya': [[6.80, 80.60], [7.15, 81.00]],
+    'Galle': [[5.90, 80.05], [6.25, 80.35]],
+    'Matara': [[5.80, 80.40], [6.15, 80.70]],
+    'Hambantota': [[5.95, 80.85], [6.40, 81.40]],
+    'Jaffna': [[9.45, 79.90], [10.00, 80.20]],
+    'Kilinochchi': [[9.20, 80.20], [9.65, 80.55]],
+    'Mannar': [[8.70, 79.75], [9.20, 80.15]],
+    'Vavuniya': [[8.55, 80.25], [9.05, 80.70]],
+    'Mullaitivu': [[9.05, 80.65], [9.55, 81.05]],
+    'Batticaloa': [[7.40, 81.40], [8.00, 81.90]],
+    'Ampara': [[6.95, 81.40], [7.60, 81.90]],
+    'Trincomalee': [[8.30, 80.90], [8.90, 81.45]],
+    'Kurunegala': [[7.25, 80.15], [7.85, 80.65]],
+    'Puttalam': [[7.85, 79.70], [8.50, 80.20]],
+    'Anuradhapura': [[7.95, 80.15], [8.65, 80.65]],
+    'Polonnaruwa': [[7.70, 80.85], [8.30, 81.35]],
+    'Badulla': [[6.70, 80.90], [7.30, 81.40]],
+    'Monaragala': [[6.50, 81.10], [7.10, 81.60]],
+    'Ratnapura': [[6.45, 80.15], [7.00, 80.65]],
+    'Kegalle': [[6.95, 80.10], [7.50, 80.55]]
+};
+
+// Component to handle map centering when district is selected
+function MapController({ districtFilter, allDistricts }) {
+    const map = useMap();
+
+    useEffect(() => {
+        if (districtFilter !== 'all' && districtBounds[districtFilter]) {
+            const bounds = districtBounds[districtFilter];
+            map.fitBounds(bounds, { padding: [50, 50] });
+        } else {
+            // Reset to Sri Lanka view
+            map.setView([7.8731, 80.7718], 7);
+        }
+    }, [districtFilter, map]);
+
+    return null;
+}
+
+function AnimalRescueList({ role = 'responder' }) {
+    const navigate = useNavigate();
+    const { animalRescues } = useAnimalRescueStore();
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [districtFilter, setDistrictFilter] = useState('all');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'map'
+
+    // All 25 districts in Sri Lanka
+    const allDistricts = [
+        'Anuradhapura', 'Badulla', 'Batticaloa', 'Colombo', 'Galle', 'Gampaha',
+        'Hambantota', 'Jaffna', 'Kalutara', 'Kandy', 'Kegalle', 'Kilinochchi',
+        'Kurunegala', 'Mannar', 'Matale', 'Matara', 'Monaragala', 'Mullaitivu',
+        'Nuwara Eliya', 'Polonnaruwa', 'Puttalam', 'Ratnapura', 'Trincomalee', 'Vavuniya'
+    ];
+
+    // Helper function to extract district from address
+    const getDistrictFromAddress = (address) => {
+        const addressLower = address.toLowerCase();
+        for (const district of allDistricts) {
+            if (addressLower.includes(district.toLowerCase())) {
+                return district;
+            }
+        }
+        return null;
+    };
+
+    const filteredRescues = animalRescues.filter(rescue => {
+        const matchesStatus = statusFilter === 'all' ||
+            (statusFilter === 'active' && rescue.status === 'Active') ||
+            (statusFilter === 'rescued' && rescue.status === 'Resolved');
+        const rescueDistrict = getDistrictFromAddress(rescue.location.address);
+        const matchesDistrict = districtFilter === 'all' || rescueDistrict === districtFilter;
+        const matchesSearch = rescue.animalType.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            rescue.location.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            rescue.description.toLowerCase().includes(searchTerm.toLowerCase());
+        return matchesStatus && matchesDistrict && matchesSearch;
+    });
+
+    const activeCount = animalRescues.filter(r => r.status === 'Active').length;
+    const rescuedCount = animalRescues.filter(r => r.status === 'Resolved').length;
+
+    const getStatusBadge = (status) => {
+        switch (status) {
+            case 'Active':
+                return { className: 'bg-danger-100 text-danger-700', text: 'Needs Rescue' };
+            case 'Resolved':
+                return { className: 'bg-success-100 text-success-700', text: 'Rescued' };
+            default:
+                return { className: 'bg-gray-100 text-gray-700', text: status };
+        }
+    };
+
+    const getConditionBadge = (condition) => {
+        switch (condition) {
+            case 'critical':
+                return { className: 'bg-danger-600 text-white', text: '🚨 Critical' };
+            case 'injured':
+                return { className: 'bg-warning-600 text-white', text: '🩹 Injured' };
+            case 'trapped':
+                return { className: 'bg-warning-500 text-white', text: '🔒 Trapped' };
+            case 'sick':
+                return { className: 'bg-warning-400 text-gray-900', text: '🤒 Sick' };
+            case 'healthy':
+                return { className: 'bg-info-500 text-white', text: '✓ Healthy' };
+            default:
+                return { className: 'bg-gray-500 text-white', text: condition };
+        }
+    };
+
+    const getAnimalTypeIcon = (animalType) => {
+        const icons = {
+            'dog': '🐕',
+            'cat': '🐈',
+            'cattle': '🐄',
+            'goat': '🐐',
+            'bird': '🐦',
+            'wildlife': '🦎',
+            'other': '🐾'
+        };
+        return icons[animalType] || '🐾';
+    };
+
+    const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' +
+            date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    };
+
+    const getTimeSince = (dateString) => {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffDays = Math.floor(diffHours / 24);
+
+        if (diffDays > 0) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+        if (diffHours > 0) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+        return 'Just now';
+    };
+
+    const handleRescueClick = (rescue) => {
+        const route = role === 'responder' ? `/animal-rescue-list/${rescue.id}` : `/animal-rescue/${rescue.id}`;
+        navigate(route);
+    };
+
+    return (
+        <div className="container mx-auto px-4 py-6 max-w-7xl">
+            {/* Header with view toggle */}
+            <div className="mb-6">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-800">
+                            {role === 'responder' ? '🐾 Animal Rescue Operations' : '🐾 Animal Rescue Reports'}
+                        </h1>
+                        <p className="text-sm text-gray-600 mt-1">
+                            {activeCount} active rescue{activeCount !== 1 ? 's' : ''} • {rescuedCount} rescued
+                        </p>
+                    </div>
+
+                    {/* View Toggle */}
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setViewMode('cards')}
+                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${viewMode === 'cards'
+                                ? 'bg-primary-600 text-white'
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                }`}
+                        >
+                            📋 Card View
+                        </button>
+                        <button
+                            onClick={() => setViewMode('map')}
+                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${viewMode === 'map'
+                                ? 'bg-primary-600 text-white'
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                }`}
+                        >
+                            🗺️ Map View
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Filters */}
+            <div className="card mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+                        <input
+                            type="text"
+                            placeholder="Animal type, location..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="input-field"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            className="input-field"
+                        >
+                            <option value="all">All Status</option>
+                            <option value="active">Needs Rescue</option>
+                            <option value="rescued">Rescued</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">District</label>
+                        <select
+                            value={districtFilter}
+                            onChange={(e) => setDistrictFilter(e.target.value)}
+                            className="input-field"
+                        >
+                            <option value="all">All Districts</option>
+                            {allDistricts.map(district => (
+                                <option key={district} value={district}>{district}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="flex items-end">
+                        <button
+                            onClick={() => {
+                                setSearchTerm('');
+                                setStatusFilter('all');
+                                setDistrictFilter('all');
+                            }}
+                            className="btn-secondary w-full"
+                        >
+                            Clear Filters
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Content - Cards or Map */}
+            {viewMode === 'cards' ? (
+                // Card View
+                <>
+                    {filteredRescues.length === 0 ? (
+                        <div className="card text-center py-12">
+                            <div className="text-6xl mb-4">🐾</div>
+                            <h3 className="text-xl font-semibold text-gray-700 mb-2">No Rescue Reports</h3>
+                            <p className="text-gray-500">No animal rescue reports match your filters.</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {filteredRescues.map((rescue) => {
+                                const statusBadge = getStatusBadge(rescue.status);
+                                const conditionBadge = getConditionBadge(rescue.condition);
+                                const animalIcon = getAnimalTypeIcon(rescue.animalType);
+
+                                return (
+                                    <div
+                                        key={rescue.id}
+                                        onClick={() => handleRescueClick(rescue)}
+                                        className="card hover:shadow-lg transition-shadow cursor-pointer"
+                                    >
+                                        {/* Animal Photo */}
+                                        <div className="relative mb-4">
+                                            <img
+                                                src={rescue.photo}
+                                                alt={rescue.animalType}
+                                                className="w-full h-48 object-cover rounded-lg"
+                                            />
+                                            <div className="absolute top-2 right-2">
+                                                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${statusBadge.className}`}>
+                                                    {statusBadge.text}
+                                                </span>
+                                            </div>
+                                            {rescue.isDangerous && (
+                                                <div className="absolute top-2 left-2">
+                                                    <span className="px-3 py-1 rounded-full text-sm font-semibold bg-danger-600 text-white">
+                                                        ⚠️ Dangerous
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Animal Info */}
+                                        <div className="space-y-3">
+                                            <div className="flex items-start justify-between gap-2">
+                                                <h3 className="text-lg font-bold text-gray-800 capitalize flex items-center gap-2">
+                                                    <span>{animalIcon}</span>
+                                                    {rescue.animalType}
+                                                    {rescue.breed && <span className="text-sm font-normal text-gray-600">({rescue.breed})</span>}
+                                                </h3>
+                                            </div>
+
+                                            <p className="text-sm text-gray-700 line-clamp-2">{rescue.description}</p>
+
+                                            {/* Condition Badge */}
+                                            <div>
+                                                <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${conditionBadge.className}`}>
+                                                    {conditionBadge.text}
+                                                </span>
+                                            </div>
+
+                                            {rescue.healthDetails && (
+                                                <p className="text-sm text-gray-600 italic line-clamp-2">
+                                                    {rescue.healthDetails}
+                                                </p>
+                                            )}
+
+                                            <div className="pt-2 border-t border-gray-200 space-y-2">
+                                                <div className="flex items-start gap-2">
+                                                    <span className="text-gray-500 text-sm">📍</span>
+                                                    <span className="text-sm text-gray-700 line-clamp-2">{rescue.location.address}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-gray-500 text-sm">⏱️</span>
+                                                    <span className="text-sm text-gray-600">Reported {getTimeSince(rescue.reportedAt)}</span>
+                                                </div>
+                                                {rescue.accessibility && (
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-gray-500 text-sm">🔧</span>
+                                                        <span className="text-sm text-gray-600 capitalize">{rescue.accessibility} access</span>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <button className="btn-primary w-full mt-4">
+                                                View Details
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </>
+            ) : (
+                // Map View
+                <div className="card p-0 overflow-hidden">
+                    <div style={{ height: '600px' }}>
+                        <MapContainer
+                            center={[7.8731, 80.7718]}
+                            zoom={7}
+                            style={{ height: '100%', width: '100%' }}
+                            minZoom={6}
+                            maxZoom={18}
+                            maxBounds={[[5.5, 79.3], [10.2, 82.2]]}
+                            maxBoundsViscosity={1.0}
+                        >
+                            <TileLayer
+                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                            />
+
+                            <MapController districtFilter={districtFilter} allDistricts={allDistricts} />
+
+                            {/* District boundary overlay */}
+                            {districtFilter !== 'all' && districtBounds[districtFilter] && (
+                                <Rectangle
+                                    bounds={districtBounds[districtFilter]}
+                                    pathOptions={{
+                                        color: '#3B82F6',
+                                        weight: 3,
+                                        fillOpacity: 0.1,
+                                        dashArray: '10, 10'
+                                    }}
+                                />
+                            )}
+
+                            <MarkerClusterGroup
+                                chunkedLoading
+                                maxClusterRadius={30}
+                                disableClusteringAtZoom={9}
+                                removeOutsideVisibleBounds={false}
+                            >
+                                {filteredRescues.map((rescue) => (
+                                    <Marker
+                                        key={rescue.id}
+                                        position={[rescue.location.lat, rescue.location.lng]}
+                                        icon={rescue.status === 'Active' ? activeIcon : resolvedIcon}
+                                    >
+                                        <Popup maxWidth={220} offset={[0, -10]}>
+                                            <div className="p-1">
+                                                <img
+                                                    src={rescue.photo}
+                                                    alt={rescue.animalType}
+                                                    className="w-full h-24 object-cover rounded mb-2"
+                                                />
+                                                <h3 className="font-bold text-sm capitalize mb-1">
+                                                    {getAnimalTypeIcon(rescue.animalType)} {rescue.animalType}
+                                                    {rescue.breed && <span className="text-xs font-normal"> ({rescue.breed})</span>}
+                                                </h3>
+                                                <div className="mb-2">
+                                                    <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${getStatusBadge(rescue.status).className}`}>
+                                                        {getStatusBadge(rescue.status).text}
+                                                    </span>
+                                                    {rescue.isDangerous && (
+                                                        <span className="inline-block px-1 py-0.5 rounded text-xs font-semibold bg-danger-600 text-white ml-1">
+                                                            ⚠️
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className="text-xs text-gray-600 mb-1">📍 {rescue.location.address}</p>
+                                                <p className="text-xs text-gray-600 mb-1">👤 {rescue.reporterName}</p>
+                                                <p className="text-xs text-gray-600 mb-2">☎️ {rescue.contactNumber}</p>
+                                                <button
+                                                    onClick={() => handleRescueClick(rescue)}
+                                                    className="btn-primary w-full text-xs py-1"
+                                                >
+                                                    View Details
+                                                </button>
+                                            </div>
+                                        </Popup>
+                                    </Marker>
+                                ))}
+                            </MarkerClusterGroup>
+                        </MapContainer>
+                    </div>
+
+                    {/* Map Legend */}
+                    <div className="p-4 bg-gray-50 border-t border-gray-200">
+                        <div className="flex flex-wrap gap-4 items-center justify-center">
+                            <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 bg-danger-500 rounded-full"></div>
+                                <span className="text-sm font-medium">Needs Rescue ({activeCount})</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 bg-success-500 rounded-full"></div>
+                                <span className="text-sm font-medium">Rescued ({rescuedCount})</span>
+                            </div>
+                            {districtFilter !== 'all' && (
+                                <div className="flex items-center gap-2">
+                                    <div className="w-6 h-1 bg-primary-500"></div>
+                                    <span className="text-sm font-medium">{districtFilter} District</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+export default AnimalRescueList;
