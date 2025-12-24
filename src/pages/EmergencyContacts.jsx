@@ -52,24 +52,24 @@ function EmergencyContacts() {
     };
 
     return (
-        <div className="container mx-auto px-4 py-6 overflow-x-hidden">
-            <h1 className="text-2xl font-bold text-gray-800 mb-4">🚨 Emergency Contacts</h1>
+        <div className="px-4 py-3 overflow-x-hidden">
+            <h1 className="text-xl font-bold text-gray-800 mb-3">🚨 Emergency Contacts</h1>
 
             {/* National Hotlines */}
-            <div className="card mb-4">
-                <h2 className="text-lg font-bold text-gray-800 mb-3">📞 National Emergency Hotlines</h2>
-                <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            <div className="bg-white rounded-lg shadow-sm p-3 mb-3">
+                <h2 className="text-base font-bold text-gray-800 mb-2">📞 National Emergency Hotlines</h2>
+                <div className="grid grid-cols-9 gap-2">
                     {nationalHotlines.map((hotline, index) => (
                         <div
                             key={index}
                             onClick={() => callNumber(hotline.number)}
-                            className="border-l-4 pl-3 py-2 rounded-r cursor-pointer hover:bg-gray-50 transition-colors"
+                            className="border-l-4 pl-2 py-1 rounded-r cursor-pointer hover:bg-gray-50 transition-colors"
                             style={{
                                 borderColor: hotline.type === 'emergency' ? '#dc2626' : hotline.type === 'military' ? '#2563eb' : '#16a34a'
                             }}
                         >
-                            <h3 className="font-semibold text-sm text-gray-800">{hotline.name}</h3>
-                            <p className="text-xl font-bold" style={{
+                            <h3 className="font-semibold text-xs text-gray-800">{hotline.name}</h3>
+                            <p className="text-base font-bold whitespace-nowrap" style={{
                                 color: hotline.type === 'emergency' ? '#dc2626' : hotline.type === 'military' ? '#2563eb' : '#16a34a'
                             }}>
                                 {hotline.number}
@@ -80,18 +80,18 @@ function EmergencyContacts() {
             </div>
 
             {/* District Contacts */}
-            <div className="card">
-                <h2 className="text-lg font-bold text-gray-800 mb-2">🏛️ District Disaster Management Centre Units (DDMCU)</h2>
+            <div className="bg-white rounded-lg shadow-sm p-4">
+                <h2 className="text-lg font-bold text-gray-800 mb-2">🏛️ District Disaster Management Centre Units</h2>
                 <p className="text-sm text-gray-600 mb-3">Click on your district to view contact details</p>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
                     {districtContacts.map((contact, index) => (
                         <div key={index}>
                             <button
                                 onClick={() => toggleDistrict(contact.district)}
-                                className={`w-full text-left px-3 py-2 rounded-lg font-medium transition-all ${expandedDistrict === contact.district
-                                        ? 'bg-primary-500 text-white shadow-md'
-                                        : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                                className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all ${expandedDistrict === contact.district
+                                    ? 'bg-primary-500 text-white shadow-md'
+                                    : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
                                     }`}
                             >
                                 {contact.district}

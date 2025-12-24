@@ -20,18 +20,6 @@ function MissingPersons() {
                     <MissingPersonForm />
                 </div>
 
-                {/* Emergency Hotline */}
-                <div>
-                    <div className="card bg-primary-50">
-                        <h4 className="font-semibold text-primary-800 mb-2">
-                            📞 Emergency Hotline
-                        </h4>
-                        <p className="text-2xl font-bold text-primary-600">119</p>
-                        <p className="text-sm text-gray-600 mt-1">
-                            Police Emergency Services
-                        </p>
-                    </div>
-                </div>
             </div>
         </div>
     );

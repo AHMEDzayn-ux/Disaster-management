@@ -3,25 +3,25 @@ import { Link } from 'react-router-dom';
 
 function RespondDashboard() {
     return (
-        <div className="px-4 py-6">
-            <div className="mb-6">
-                <h1 className="text-3xl font-bold text-gray-800 mb-2">
+        <div className="px-4 py-3">
+            <div className="mb-3">
+                <h1 className="text-2xl font-bold text-gray-800 mb-1">
                     Respond & Help
                 </h1>
-                <p className="text-gray-600">
+                <p className="text-gray-600 text-sm">
                     Coordinate rescue efforts and provide assistance
                 </p>
             </div>
 
-            <div className="flex gap-6">
+            <div className="flex gap-4">
                 {/* Main Cards Section - Left aligned */}
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {/* View Missing Persons */}
                     <Link to="/missing-persons-list" className="group">
                         <div className="card hover:shadow-xl transition-all border-l-4 border-danger-500 h-full">
-                            <div className="flex items-start gap-4">
+                            <div className="flex flex-col items-center justify-center gap-3 text-center h-full">
                                 <div className="text-4xl">🔍</div>
-                                <div className="flex-1">
+                                <div>
                                     <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-danger-600">
                                         Missing Persons List
                                     </h3>
@@ -39,9 +39,9 @@ function RespondDashboard() {
                     {/* Active Disasters */}
                     <Link to="/disasters-list" className="group">
                         <div className="card hover:shadow-xl transition-all border-l-4 border-orange-500 h-full">
-                            <div className="flex items-start gap-4">
+                            <div className="flex flex-col items-center justify-center gap-3 text-center h-full">
                                 <div className="text-4xl">🗺️</div>
-                                <div className="flex-1">
+                                <div>
                                     <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-orange-600">
                                         Active Disasters
                                     </h3>
@@ -59,9 +59,9 @@ function RespondDashboard() {
                     {/* Volunteer Registration */}
                     <Link to="/volunteers" className="group">
                         <div className="card hover:shadow-xl transition-all border-l-4 border-success-500 h-full">
-                            <div className="flex items-start gap-4">
+                            <div className="flex flex-col items-center justify-center gap-3 text-center h-full">
                                 <div className="text-4xl">🙋</div>
-                                <div className="flex-1">
+                                <div>
                                     <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-success-600">
                                         Register as Volunteer
                                     </h3>
@@ -79,9 +79,9 @@ function RespondDashboard() {
                     {/* Camp Management */}
                     <Link to="/camps" className="group">
                         <div className="card hover:shadow-xl transition-all border-l-4 border-primary-500 h-full">
-                            <div className="flex items-start gap-4">
+                            <div className="flex flex-col items-center justify-center gap-3 text-center h-full">
                                 <div className="text-4xl">⛺</div>
-                                <div className="flex-1">
+                                <div>
                                     <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-primary-600">
                                         Relief Camps
                                     </h3>
@@ -99,9 +99,9 @@ function RespondDashboard() {
                     {/* Donations */}
                     <Link to="/donations" className="group">
                         <div className="card hover:shadow-xl transition-all border-l-4 border-purple-500 h-full">
-                            <div className="flex items-start gap-4">
+                            <div className="flex flex-col items-center justify-center gap-3 text-center h-full">
                                 <div className="text-4xl">💰</div>
-                                <div className="flex-1">
+                                <div>
                                     <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-purple-600">
                                         Make a Donation
                                     </h3>
@@ -119,9 +119,9 @@ function RespondDashboard() {
                     {/* Animal Rescue List */}
                     <Link to="/animal-rescue-list" className="group">
                         <div className="card hover:shadow-xl transition-all border-l-4 border-blue-500 h-full">
-                            <div className="flex items-start gap-4">
+                            <div className="flex flex-col items-center justify-center gap-3 text-center h-full">
                                 <div className="text-4xl">🐾</div>
-                                <div className="flex-1">
+                                <div>
                                     <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-blue-600">
                                         Animal Rescue Requests
                                     </h3>
@@ -138,24 +138,24 @@ function RespondDashboard() {
                 </div>
 
                 {/* Quick Stats - Right Sidebar */}
-                <div className="w-64 flex-shrink-0">
+                <div className="w-56 flex-shrink-0">
                     <div className="sticky top-4">
-                        <h2 className="text-lg font-bold text-gray-800 mb-4">Quick Stats</h2>
-                        <div className="space-y-4">
-                            <div className="card text-center bg-danger-50">
-                                <p className="text-2xl font-bold text-danger-600">0</p>
+                        <h2 className="text-base font-bold text-gray-800 mb-2">Quick Stats</h2>
+                        <div className="space-y-2">
+                            <div className="bg-white rounded-lg shadow-sm p-3 text-center bg-danger-50">
+                                <p className="text-xl font-bold text-danger-600">0</p>
                                 <p className="text-xs text-gray-600">Missing Persons</p>
                             </div>
-                            <div className="card text-center bg-orange-50">
-                                <p className="text-2xl font-bold text-orange-600">0</p>
+                            <div className="bg-white rounded-lg shadow-sm p-3 text-center bg-orange-50">
+                                <p className="text-xl font-bold text-orange-600">0</p>
                                 <p className="text-xs text-gray-600">Active Disasters</p>
                             </div>
-                            <div className="card text-center bg-success-50">
-                                <p className="text-2xl font-bold text-success-600">0</p>
+                            <div className="bg-white rounded-lg shadow-sm p-3 text-center bg-success-50">
+                                <p className="text-xl font-bold text-success-600">0</p>
                                 <p className="text-xs text-gray-600">Volunteers</p>
                             </div>
-                            <div className="card text-center bg-primary-50">
-                                <p className="text-2xl font-bold text-primary-600">0</p>
+                            <div className="bg-white rounded-lg shadow-sm p-3 text-center bg-primary-50">
+                                <p className="text-xl font-bold text-primary-600">0</p>
                                 <p className="text-xs text-gray-600">Relief Camps</p>
                             </div>
                         </div>
