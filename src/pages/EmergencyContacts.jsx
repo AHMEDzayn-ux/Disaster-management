@@ -47,10 +47,6 @@ function EmergencyContacts() {
         setExpandedDistrict(expandedDistrict === district ? null : district);
     };
 
-    const callNumber = (number) => {
-        window.location.href = `tel:${number}`;
-    };
-
     return (
         <div className="px-4 py-3 overflow-x-hidden">
             <h1 className="text-xl font-bold text-gray-800 mb-3">🚨 Emergency Contacts</h1>
@@ -60,10 +56,10 @@ function EmergencyContacts() {
                 <h2 className="text-base font-bold text-gray-800 mb-2">📞 National Emergency Hotlines</h2>
                 <div className="grid grid-cols-9 gap-2">
                     {nationalHotlines.map((hotline, index) => (
-                        <div
+                        <a
                             key={index}
-                            onClick={() => callNumber(hotline.number)}
-                            className="border-l-4 pl-2 py-1 rounded-r cursor-pointer hover:bg-gray-50 transition-colors"
+                            href={`tel:${hotline.number}`}
+                            className="border-l-4 pl-2 py-1 rounded-r cursor-pointer hover:bg-gray-50 transition-colors block"
                             style={{
                                 borderColor: hotline.type === 'emergency' ? '#dc2626' : hotline.type === 'military' ? '#2563eb' : '#16a34a'
                             }}
@@ -74,7 +70,7 @@ function EmergencyContacts() {
                             }}>
                                 {hotline.number}
                             </p>
-                        </div>
+                        </a>
                     ))}
                 </div>
             </div>
