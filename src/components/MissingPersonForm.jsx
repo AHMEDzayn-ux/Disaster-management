@@ -4,11 +4,31 @@ import { useMissingPersonStore } from '../store';
 import LocationPicker from './LocationPicker';
 
 function MissingPersonForm() {
-    const { register, handleSubmit, formState: { errors }, reset, control } = useForm();
+    const { register, handleSubmit, formState: { errors }, reset, control, setValue } = useForm();
     const { addMissingPerson } = useMissingPersonStore();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitSuccess, setSubmitSuccess] = useState(false);
     const [photoPreview, setPhotoPreview] = useState(null);
+
+    // Sample test photo (1x1 red pixel PNG)
+    const testPhotoDataURL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==';
+
+    const autofillTestData = () => {
+        setValue('name', 'John Silva');
+        setValue('age', '35');
+        setValue('gender', 'male');
+        setValue('description', 'Wearing blue shirt and black pants. Has a scar on left arm.');
+        setValue('lastSeenLocation', {
+            lat: 6.9271,
+            lng: 79.8612,
+            address: 'Colombo Fort Railway Station, Colombo'
+        });
+        setValue('lastSeenDate', new Date().toISOString().slice(0, 16));
+        setValue('reporterName', 'Mary Silva');
+        setValue('contactNumber', '0771234567');
+        setValue('additionalInfo', 'Last seen near the bus station around 3 PM.');
+        setPhotoPreview(testPhotoDataURL);
+    };
 
     const handlePhotoChange = (e) => {
         const file = e.target.files[0];
@@ -34,26 +54,32 @@ function MissingPersonForm() {
         setSubmitSuccess(false);
 
         try {
-            // Add photo to data if exists
+            // Convert camelCase to snake_case for database
             const newReport = {
-                id: Date.now(),
-                ...data,
+                name: data.name,
+                age: parseInt(data.age),
+                gender: data.gender,
+                description: data.description || null,
+                last_seen_location: data.lastSeenLocation,
+                last_seen_date: data.lastSeenDate,
+                reporter_name: data.reporterName,
+                contact_number: data.contactNumber,
+                additional_info: data.additionalInfo || null,
                 photo: photoPreview,
-                status: 'Active',
-                reportedAt: new Date().toISOString(),
+                status: 'Active'
             };
 
-            addMissingPerson(newReport);
+            await addMissingPerson(newReport);
 
             // Show success message
             setSubmitSuccess(true);
             reset();
             setPhotoPreview(null);
 
-            // Hide success message after 3 seconds
             setTimeout(() => setSubmitSuccess(false), 3000);
         } catch (error) {
-            alert('Failed to submit report. Please try again.');
+            console.error('Error submitting missing person:', error);
+            alert(`Failed to submit report: ${error.message}`);
         } finally {
             setIsSubmitting(false);
         }
@@ -311,6 +337,13 @@ function MissingPersonForm() {
                             className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSubmitting ? 'Submitting...' : '📤 Submit Report'}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={autofillTestData}
+                            className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                        >
+                            🧪 Test Autofill
                         </button>
                         <button
                             type="button"

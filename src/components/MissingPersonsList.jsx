@@ -81,11 +81,17 @@ function MapController({ districtFilter, allDistricts }) {
 
 function MissingPersonsList({ role = 'responder' }) {
     const navigate = useNavigate();
-    const { missingPersons } = useMissingPersonStore();
+    const { missingPersons, subscribeToMissingPersons, unsubscribeFromMissingPersons } = useMissingPersonStore();
     const [statusFilter, setStatusFilter] = useState('all');
     const [districtFilter, setDistrictFilter] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'map'
+
+    // Subscribe to real-time updates on mount
+    useEffect(() => {
+        subscribeToMissingPersons();
+        return () => unsubscribeFromMissingPersons();
+    }, []);
 
     // All 25 districts in Sri Lanka (matching EmergencyContacts)
     const allDistricts = [
@@ -110,10 +116,15 @@ function MissingPersonsList({ role = 'responder' }) {
         const matchesStatus = statusFilter === 'all' ||
             (statusFilter === 'active' && person.status === 'Active') ||
             (statusFilter === 'found' && person.status === 'Resolved');
-        const personDistrict = getDistrictFromAddress(person.lastSeenLocation.address);
+
+        // Handle both snake_case (database) and camelCase (legacy)
+        const location = person.last_seen_location || person.lastSeenLocation;
+        const personDistrict = location ? getDistrictFromAddress(location.address) : null;
         const matchesDistrict = districtFilter === 'all' || personDistrict === districtFilter;
+
         const matchesSearch = person.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            person.lastSeenLocation.address.toLowerCase().includes(searchTerm.toLowerCase());
+            (location && location.address.toLowerCase().includes(searchTerm.toLowerCase()));
+
         return matchesStatus && matchesDistrict && matchesSearch;
     });
 
@@ -162,8 +173,8 @@ function MissingPersonsList({ role = 'responder' }) {
                     <button
                         onClick={() => setViewMode('cards')}
                         className={`px-6 py-2 text-sm font-medium transition-colors rounded-l-lg ${viewMode === 'cards'
-                                ? 'bg-primary-500 text-white'
-                                : 'bg-white text-gray-700 hover:bg-gray-50'
+                            ? 'bg-primary-500 text-white'
+                            : 'bg-white text-gray-700 hover:bg-gray-50'
                             }`}
                     >
                         📋 Card View
@@ -171,8 +182,8 @@ function MissingPersonsList({ role = 'responder' }) {
                     <button
                         onClick={() => setViewMode('map')}
                         className={`px-6 py-2 text-sm font-medium transition-colors rounded-r-lg border-l ${viewMode === 'map'
-                                ? 'bg-primary-500 text-white'
-                                : 'bg-white text-gray-700 hover:bg-gray-50'
+                            ? 'bg-primary-500 text-white'
+                            : 'bg-white text-gray-700 hover:bg-gray-50'
                             }`}
                     >
                         🗺️ Map View
@@ -264,11 +275,11 @@ function MissingPersonsList({ role = 'responder' }) {
 
                                     <div className="space-y-1 text-sm text-gray-600">
                                         <p><span className="font-medium">Age:</span> {person.age} | <span className="font-medium">Gender:</span> {person.gender}</p>
-                                        <p className="text-xs text-gray-500 truncate" title={person.lastSeenLocation.address}>
-                                            📍 {person.lastSeenLocation.address}
+                                        <p className="text-xs text-gray-500 truncate" title={(person.last_seen_location || person.lastSeenLocation)?.address}>
+                                            📍 {(person.last_seen_location || person.lastSeenLocation)?.address}
                                         </p>
                                         <p className="text-xs text-gray-500">
-                                            🕒 Last seen {getTimeSince(person.lastSeenDate)}
+                                            🕒 Last seen {getTimeSince(person.last_seen_date || person.lastSeenDate)}
                                         </p>
                                     </div>
                                 </div>
@@ -363,53 +374,57 @@ function MissingPersonsList({ role = 'responder' }) {
                             zoomToBoundsOnClick={true}
                             removeOutsideVisibleBounds={false}
                         >
-                            {filteredPersons.map((person) => (
-                                <Marker
-                                    key={person.id}
-                                    position={[person.lastSeenLocation.lat, person.lastSeenLocation.lng]}
-                                    icon={person.status === 'Active' ? activeIcon : resolvedIcon}
-                                >
-                                    <Popup maxWidth={300}>
-                                        <div className="p-2">
-                                            <div className="flex gap-3 mb-3">
-                                                <img
-                                                    src={person.photo}
-                                                    alt={person.name}
-                                                    className="w-16 h-16 rounded object-cover"
-                                                />
-                                                <div className="flex-1">
-                                                    <h3 className="font-bold text-gray-800">{person.name}</h3>
-                                                    <p className="text-sm text-gray-600">Age: {person.age} | {person.gender}</p>
-                                                    <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold mt-1 ${getStatusBadge(person.status).className}`}>
-                                                        {getStatusBadge(person.status).text}
-                                                    </span>
+                            {filteredPersons.map((person) => {
+                                const location = person.last_seen_location || person.lastSeenLocation;
+                                const lastSeenDate = person.last_seen_date || person.lastSeenDate;
+                                return (
+                                    <Marker
+                                        key={person.id}
+                                        position={[location.lat, location.lng]}
+                                        icon={person.status === 'Active' ? activeIcon : resolvedIcon}
+                                    >
+                                        <Popup maxWidth={300}>
+                                            <div className="p-2">
+                                                <div className="flex gap-3 mb-3">
+                                                    <img
+                                                        src={person.photo}
+                                                        alt={person.name}
+                                                        className="w-16 h-16 rounded object-cover"
+                                                    />
+                                                    <div className="flex-1">
+                                                        <h3 className="font-bold text-gray-800">{person.name}</h3>
+                                                        <p className="text-sm text-gray-600">Age: {person.age} | {person.gender}</p>
+                                                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold mt-1 ${getStatusBadge(person.status).className}`}>
+                                                            {getStatusBadge(person.status).text}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <p className="text-sm text-gray-700 mb-2">{person.description}</p>
-                                            <p className="text-xs text-gray-500 mb-3">
-                                                📍 {person.lastSeenLocation.address}<br />
-                                                🕒 Last seen {getTimeSince(person.lastSeenDate)}
-                                            </p>
-                                            {person.foundByContact && (
-                                                <p className="text-xs text-success-600 font-medium mb-2">
-                                                    ✓ Contact: {person.foundByContact}
+                                                <p className="text-sm text-gray-700 mb-2">{person.description}</p>
+                                                <p className="text-xs text-gray-500 mb-3">
+                                                    📍 {location.address}<br />
+                                                    🕒 Last seen {getTimeSince(lastSeenDate)}
                                                 </p>
-                                            )}
-                                            <button
-                                                onClick={() => {
-                                                    const detailPath = role === 'responder'
-                                                        ? `/missing-persons-list/${person.id}`
-                                                        : `/missing-persons/${person.id}`;
-                                                    navigate(detailPath);
-                                                }}
-                                                className="w-full bg-primary-500 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-primary-600 transition-colors"
-                                            >
-                                                View Details
-                                            </button>
-                                        </div>
-                                    </Popup>
-                                </Marker>
-                            ))}
+                                                {person.found_by_contact && (
+                                                    <p className="text-xs text-success-600 font-medium mb-2">
+                                                        ✓ Contact: {person.found_by_contact}
+                                                    </p>
+                                                )}
+                                                <button
+                                                    onClick={() => {
+                                                        const detailPath = role === 'responder'
+                                                            ? `/missing-persons-list/${person.id}`
+                                                            : `/missing-persons/${person.id}`;
+                                                        navigate(detailPath);
+                                                    }}
+                                                    className="w-full bg-primary-500 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-primary-600 transition-colors"
+                                                >
+                                                    View Details
+                                                </button>
+                                            </div>
+                                        </Popup>
+                                    </Marker>
+                                );
+                            })}
                         </MarkerClusterGroup>
                     </MapContainer>
 

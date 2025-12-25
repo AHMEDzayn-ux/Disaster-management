@@ -81,11 +81,17 @@ function MapController({ districtFilter, allDistricts }) {
 
 function AnimalRescueList({ role = 'responder' }) {
     const navigate = useNavigate();
-    const { animalRescues } = useAnimalRescueStore();
+    const { animalRescues, subscribeToAnimalRescues, unsubscribeFromAnimalRescues } = useAnimalRescueStore();
     const [statusFilter, setStatusFilter] = useState('all');
     const [districtFilter, setDistrictFilter] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'map'
+
+    // Subscribe to real-time updates on mount
+    useEffect(() => {
+        subscribeToAnimalRescues();
+        return () => unsubscribeFromAnimalRescues();
+    }, []);
 
     // All 25 districts in Sri Lanka
     const allDistricts = [

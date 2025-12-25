@@ -79,13 +79,19 @@ function MapController({ districtFilter }) {
 
 function DisasterReportsList({ role = 'responder' }) {
     const navigate = useNavigate();
-    const { disasters } = useDisasterStore();
+    const { disasters, subscribeToDisasters, unsubscribeFromDisasters } = useDisasterStore();
     const [statusFilter, setStatusFilter] = useState('all');
     const [districtFilter, setDistrictFilter] = useState('all');
     const [typeFilter, setTypeFilter] = useState('all');
     const [severityFilter, setSeverityFilter] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [viewMode, setViewMode] = useState('cards');
+
+    // Subscribe to real-time updates on mount
+    useEffect(() => {
+        subscribeToDisasters();
+        return () => unsubscribeFromDisasters();
+    }, []);
 
     const allDistricts = [
         'Anuradhapura', 'Badulla', 'Batticaloa', 'Colombo', 'Galle', 'Gampaha',
@@ -108,12 +114,13 @@ function DisasterReportsList({ role = 'responder' }) {
         const matchesStatus = statusFilter === 'all' ||
             (statusFilter === 'active' && disaster.status === 'Active') ||
             (statusFilter === 'resolved' && disaster.status === 'Resolved');
-        const disasterDistrict = getDistrictFromAddress(disaster.location.address);
+        const disasterDistrict = getDistrictFromAddress(disaster.location?.address || '');
         const matchesDistrict = districtFilter === 'all' || disasterDistrict === districtFilter;
-        const matchesType = typeFilter === 'all' || disaster.disasterType === typeFilter;
+        const disasterType = disaster.disaster_type || disaster.disasterType;
+        const matchesType = typeFilter === 'all' || disasterType === typeFilter;
         const matchesSeverity = severityFilter === 'all' || disaster.severity === severityFilter;
-        const matchesSearch = disaster.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            disaster.location.address.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesSearch = (disaster.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (disaster.location?.address || '').toLowerCase().includes(searchTerm.toLowerCase());
         return matchesStatus && matchesDistrict && matchesType && matchesSeverity && matchesSearch;
     });
 
@@ -271,6 +278,11 @@ function DisasterReportsList({ role = 'responder' }) {
                     {filteredDisasters.map((disaster) => {
                         const severityBadge = getSeverityBadge(disaster.severity);
                         const statusBadge = getStatusBadge(disaster.status);
+                        const disasterType = disaster.disaster_type || disaster.disasterType || 'unknown';
+                        const peopleAffected = disaster.people_affected || disaster.peopleAffected;
+                        const reportedAt = disaster.reported_at || disaster.reportedAt || disaster.created_at;
+                        const reporterName = disaster.reporter_name || disaster.reporterName;
+                        const contactNumber = disaster.contact_number || disaster.contactNumber;
 
                         return (
                             <div
@@ -280,7 +292,7 @@ function DisasterReportsList({ role = 'responder' }) {
                             >
                                 {disaster.photo && (
                                     <div className="relative mb-4">
-                                        <img src={disaster.photo} alt={disaster.disasterType} className="w-full h-48 object-cover rounded-lg" />
+                                        <img src={disaster.photo} alt={disasterType} className="w-full h-48 object-cover rounded-lg" />
                                         <div className="absolute top-2 right-2">
                                             <span className={`px-3 py-1 rounded-full text-sm font-semibold ${statusBadge.className}`}>
                                                 {statusBadge.text}
@@ -292,8 +304,8 @@ function DisasterReportsList({ role = 'responder' }) {
                                 <div className="space-y-3">
                                     <div className="flex items-start justify-between gap-2">
                                         <h3 className="text-lg font-bold text-gray-800 capitalize flex items-center gap-2">
-                                            <span>{getDisasterIcon(disaster.disasterType)}</span>
-                                            {disaster.disasterType.replace('-', ' ')}
+                                            <span>{getDisasterIcon(disasterType)}</span>
+                                            {disasterType.replace('-', ' ')}
                                         </h3>
                                     </div>
 
@@ -308,14 +320,14 @@ function DisasterReportsList({ role = 'responder' }) {
                                     <div className="pt-2 border-t border-gray-200 space-y-2">
                                         <div className="flex items-start gap-2">
                                             <span className="text-gray-500 text-sm">📍</span>
-                                            <span className="text-sm text-gray-700 line-clamp-2">{disaster.location.address}</span>
+                                            <span className="text-sm text-gray-700 line-clamp-2">{disaster.location?.address || 'Unknown'}</span>
                                         </div>
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-2">
                                                 <span className="text-gray-500 text-sm">👥</span>
-                                                <span className="text-sm text-gray-600">{disaster.peopleAffected} affected</span>
+                                                <span className="text-sm text-gray-600">{peopleAffected || 'Unknown'} affected</span>
                                             </div>
-                                            <span className="text-sm text-gray-500">{getTimeSince(disaster.reportedAt)}</span>
+                                            <span className="text-sm text-gray-500">{getTimeSince(reportedAt)}</span>
                                         </div>
                                     </div>
 
@@ -359,33 +371,39 @@ function DisasterReportsList({ role = 'responder' }) {
                             )}
 
                             <MarkerClusterGroup chunkedLoading maxClusterRadius={30} disableClusteringAtZoom={9} removeOutsideVisibleBounds={false}>
-                                {filteredDisasters.map((disaster) => (
-                                    <Marker
-                                        key={disaster.id}
-                                        position={[disaster.location.lat, disaster.location.lng]}
-                                        icon={disaster.status === 'Active' ? activeIcon : resolvedIcon}
-                                    >
-                                        <Popup maxWidth={220} offset={[0, -10]}>
-                                            <div className="p-1">
-                                                {disaster.photo && <img src={disaster.photo} alt={disaster.disasterType} className="w-full h-24 object-cover rounded mb-2" />}
-                                                <h3 className="font-bold text-sm capitalize mb-1">
-                                                    {getDisasterIcon(disaster.disasterType)} {disaster.disasterType.replace('-', ' ')}
-                                                </h3>
-                                                <div className="mb-2">
-                                                    <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${getSeverityBadge(disaster.severity).className}`}>
-                                                        {getSeverityBadge(disaster.severity).text}
-                                                    </span>
+                                {filteredDisasters.map((disaster) => {
+                                    const disasterType = disaster.disaster_type || disaster.disasterType || 'unknown';
+                                    const reporterName = disaster.reporter_name || disaster.reporterName;
+                                    const contactNumber = disaster.contact_number || disaster.contactNumber;
+
+                                    return (
+                                        <Marker
+                                            key={disaster.id}
+                                            position={[disaster.location.lat, disaster.location.lng]}
+                                            icon={disaster.status === 'Active' ? activeIcon : resolvedIcon}
+                                        >
+                                            <Popup maxWidth={220} offset={[0, -10]}>
+                                                <div className="p-1">
+                                                    {disaster.photo && <img src={disaster.photo} alt={disasterType} className="w-full h-24 object-cover rounded mb-2" />}
+                                                    <h3 className="font-bold text-sm capitalize mb-1">
+                                                        {getDisasterIcon(disasterType)} {disasterType.replace('-', ' ')}
+                                                    </h3>
+                                                    <div className="mb-2">
+                                                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${getSeverityBadge(disaster.severity).className}`}>
+                                                            {getSeverityBadge(disaster.severity).text}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-xs text-gray-600 mb-1">📍 {disaster.location?.address || 'Unknown'}</p>
+                                                    <p className="text-xs text-gray-600 mb-1">👤 {reporterName || 'Unknown'}</p>
+                                                    <p className="text-xs text-gray-600 mb-2">☎️ {contactNumber || 'Unknown'}</p>
+                                                    <button onClick={() => handleDisasterClick(disaster)} className="btn-primary w-full text-xs py-1">
+                                                        View Details
+                                                    </button>
                                                 </div>
-                                                <p className="text-xs text-gray-600 mb-1">📍 {disaster.location.address}</p>
-                                                <p className="text-xs text-gray-600 mb-1">👤 {disaster.reporterName}</p>
-                                                <p className="text-xs text-gray-600 mb-2">☎️ {disaster.contactNumber}</p>
-                                                <button onClick={() => handleDisasterClick(disaster)} className="btn-primary w-full text-xs py-1">
-                                                    View Details
-                                                </button>
-                                            </div>
-                                        </Popup>
-                                    </Marker>
-                                ))}
+                                            </Popup>
+                                        </Marker>
+                                    );
+                                })}
                             </MarkerClusterGroup>
                         </MapContainer>
                     </div>

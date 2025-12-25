@@ -79,13 +79,19 @@ function MapController({ districtFilter }) {
 
 function CampsList({ role = 'responder' }) {
     const navigate = useNavigate();
-    const { camps } = useCampStore();
+    const { camps, subscribeToCamps, unsubscribeFromCamps } = useCampStore();
     const [statusFilter, setStatusFilter] = useState('all');
     const [typeFilter, setTypeFilter] = useState('all');
     const [districtFilter, setDistrictFilter] = useState('all');
     const [needsFilter, setNeedsFilter] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [viewMode, setViewMode] = useState('map'); // Default to map view as it's most important
+
+    // Subscribe to real-time updates on mount
+    useEffect(() => {
+        subscribeToCamps();
+        return () => unsubscribeFromCamps();
+    }, []);
 
     const allDistricts = [
         'Anuradhapura', 'Badulla', 'Batticaloa', 'Colombo', 'Galle', 'Gampaha',

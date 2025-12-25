@@ -1,12 +1,33 @@
 import React, { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
+import { useAnimalRescueStore } from '../store';
 import LocationPicker from './LocationPicker';
 
 function AnimalRescueForm() {
-    const { register, handleSubmit, formState: { errors }, reset, watch, control } = useForm();
+    const { register, handleSubmit, formState: { errors }, reset, watch, control, setValue } = useForm();
+    const { addAnimalRescue } = useAnimalRescueStore();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitSuccess, setSubmitSuccess] = useState(false);
     const [photoPreview, setPhotoPreview] = useState(null);
+
+    const isDangerous = watch('isDangerous');
+    const testPhotoDataURL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==';
+
+    const autofillTestData = () => {
+        setValue('animalType', 'dog');
+        setValue('breed', 'Labrador Mix');
+        setValue('description', 'Large brown dog, appears injured. Limping on front left leg. Seems friendly but scared.');
+        setValue('condition', 'injured');
+        setValue('isDangerous', false);
+        setValue('location', {
+            lat: 6.9271,
+            lng: 79.8612,
+            address: 'Near Galle Face, Colombo'
+        });
+        setValue('reporterName', 'Saman Fernando');
+        setValue('contactNumber', '0771234567');
+        setPhotoPreview(testPhotoDataURL);
+    };
 
     const isDangerous = watch('isDangerous');
 
@@ -34,18 +55,21 @@ function AnimalRescueForm() {
         setSubmitSuccess(false);
 
         try {
+            // Convert camelCase to snake_case for database
             const newReport = {
-                id: Date.now(),
-                ...data,
+                animal_type: data.animalType,
+                breed: data.breed || null,
+                description: data.description,
+                condition: data.condition,
+                is_dangerous: data.isDangerous || false,
+                location: data.location,
+                reporter_name: data.reporterName,
+                contact_number: data.contactNumber,
                 photo: photoPreview,
-                status: 'Pending',
-                reportedAt: new Date().toISOString(),
+                status: 'Pending'
             };
 
-            // Store locally (will sync when online)
-            const existingReports = JSON.parse(localStorage.getItem('animalRescueReports') || '[]');
-            existingReports.push(newReport);
-            localStorage.setItem('animalRescueReports', JSON.stringify(existingReports));
+            await addAnimalRescue(newReport);
 
             // Show success message
             setSubmitSuccess(true);
@@ -55,7 +79,8 @@ function AnimalRescueForm() {
             // Hide success message after 3 seconds
             setTimeout(() => setSubmitSuccess(false), 3000);
         } catch (error) {
-            alert('Failed to submit report. Please try again.');
+            console.error('Error submitting animal rescue:', error);
+            alert(`Failed to submit report: ${error.message}`);
         } finally {
             setIsSubmitting(false);
         }
@@ -362,6 +387,13 @@ function AnimalRescueForm() {
                             className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSubmitting ? 'Submitting...' : '📤 Submit Rescue Request'}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={autofillTestData}
+                            className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                        >
+                            🧪 Test Autofill
                         </button>
                         <button
                             type="button"

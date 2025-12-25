@@ -1,14 +1,39 @@
 import React, { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
+import { useDisasterStore } from '../store';
 import LocationPicker from './LocationPicker';
 
 function DisasterReportForm() {
-    const { register, handleSubmit, formState: { errors }, reset, control, watch } = useForm();
+    const { register, handleSubmit, formState: { errors }, reset, control, watch, setValue } = useForm();
+    const { addDisaster } = useDisasterStore();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitSuccess, setSubmitSuccess] = useState(false);
     const [photoPreview, setPhotoPreview] = useState(null);
 
     const disasterType = watch('disasterType');
+    const testPhotoDataURL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==';
+
+    const autofillTestData = () => {
+        setValue('disasterType', 'flood');
+        setValue('severity', 'high');
+        setValue('description', 'Heavy rainfall has caused severe flooding in the area. Water levels are rising rapidly. Several homes are affected and people need immediate evacuation.');
+        setValue('peopleAffected', '51-100');
+        setValue('casualties', 'minor');
+        setValue('needs.rescue', true);
+        setValue('needs.medical', true);
+        setValue('needs.shelter', true);
+        setValue('needs.food', true);
+        setValue('location', {
+            lat: 6.9271,
+            lng: 79.8612,
+            address: 'Colombo Fort, Colombo'
+        });
+        setValue('occurredDate', new Date().toISOString().slice(0, 16));
+        setValue('areaSize', 'medium');
+        setValue('reporterName', 'Nimal Perera');
+        setValue('contactNumber', '0771234567');
+        setPhotoPreview(testPhotoDataURL);
+    };
 
     const handlePhotoChange = (e) => {
         const file = e.target.files[0];
@@ -32,17 +57,24 @@ function DisasterReportForm() {
         setSubmitSuccess(false);
 
         try {
+            // Convert camelCase to snake_case for database
             const newReport = {
-                id: Date.now(),
-                ...data,
+                disaster_type: data.disasterType,
+                severity: data.severity,
+                description: data.description,
+                people_affected: data.peopleAffected || null,
+                casualties: data.casualties || null,
+                needs: data.needs || {},
+                location: data.location,
+                occurred_date: data.occurredDate || null,
+                area_size: data.areaSize || null,
+                reporter_name: data.reporterName,
+                contact_number: data.contactNumber,
                 photo: photoPreview,
-                status: 'Active',
-                reportedAt: new Date().toISOString(),
+                status: 'Active'
             };
 
-            const existingReports = JSON.parse(localStorage.getItem('disasterReports') || '[]');
-            existingReports.push(newReport);
-            localStorage.setItem('disasterReports', JSON.stringify(existingReports));
+            await addDisaster(newReport);
 
             setSubmitSuccess(true);
             reset();
@@ -50,7 +82,8 @@ function DisasterReportForm() {
 
             setTimeout(() => setSubmitSuccess(false), 3000);
         } catch (error) {
-            alert('Failed to submit report. Please try again.');
+            console.error('Error submitting disaster report:', error);
+            alert(`Failed to submit report: ${error.message}`);
         } finally {
             setIsSubmitting(false);
         }
@@ -363,6 +396,13 @@ function DisasterReportForm() {
                             className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSubmitting ? 'Submitting...' : '📤 Submit Disaster Report'}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={autofillTestData}
+                            className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                        >
+                            🧪 Test Autofill
                         </button>
                         <button
                             type="button"
