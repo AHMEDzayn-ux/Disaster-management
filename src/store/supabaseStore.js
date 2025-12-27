@@ -33,8 +33,25 @@ export const useMissingPersonStore = create((set, get) => ({
         set({ loading: true });
         const unsubscribeFn = await subscribeToTable(
             TABLES.MISSING_PERSONS,
-            (persons) => {
-                set({ missingPersons: persons, loading: false, error: null, isInitialized: true });
+            (persons, appendMode = false) => {
+                if (appendMode) {
+                    // Append new data, filtering out duplicates
+                    set((state) => {
+                        const existingIds = new Set(state.missingPersons.map(p => p.id));
+                        const newPersons = persons.filter(p => !existingIds.has(p.id));
+                        return { 
+                            missingPersons: [...state.missingPersons, ...newPersons]
+                        };
+                    });
+                } else {
+                    // Replace all data
+                    set({ 
+                        missingPersons: persons, 
+                        loading: false, 
+                        error: null, 
+                        isInitialized: true 
+                    });
+                }
             }
         );
         set({ unsubscribe: unsubscribeFn });
@@ -127,8 +144,23 @@ export const useDisasterStore = create((set, get) => ({
         set({ loading: true });
         const unsubscribeFn = await subscribeToTable(
             TABLES.DISASTERS,
-            (disasters) => {
-                set({ disasters, loading: false, error: null, isInitialized: true });
+            (disasters, appendMode = false) => {
+                if (appendMode) {
+                    set((state) => {
+                        const existingIds = new Set(state.disasters.map(d => d.id));
+                        const newDisasters = disasters.filter(d => !existingIds.has(d.id));
+                        return { 
+                            disasters: [...state.disasters, ...newDisasters]
+                        };
+                    });
+                } else {
+                    set({ 
+                        disasters, 
+                        loading: false, 
+                        error: null, 
+                        isInitialized: true 
+                    });
+                }
             }
         );
         set({ unsubscribe: unsubscribeFn });
@@ -216,8 +248,23 @@ export const useAnimalRescueStore = create((set, get) => ({
         set({ loading: true });
         const unsubscribeFn = await subscribeToTable(
             TABLES.ANIMAL_RESCUES,
-            (rescues) => {
-                set({ animalRescues: rescues, loading: false, error: null, isInitialized: true });
+            (rescues, appendMode = false) => {
+                if (appendMode) {
+                    set((state) => {
+                        const existingIds = new Set(state.animalRescues.map(r => r.id));
+                        const newRescues = rescues.filter(r => !existingIds.has(r.id));
+                        return { 
+                            animalRescues: [...state.animalRescues, ...newRescues]
+                        };
+                    });
+                } else {
+                    set({ 
+                        animalRescues: rescues, 
+                        loading: false, 
+                        error: null, 
+                        isInitialized: true 
+                    });
+                }
             }
         );
         set({ unsubscribe: unsubscribeFn });
@@ -305,8 +352,23 @@ export const useCampStore = create((set, get) => ({
         set({ loading: true });
         const unsubscribeFn = await subscribeToTable(
             TABLES.CAMPS,
-            (camps) => {
-                set({ camps, loading: false, error: null, isInitialized: true });
+            (camps, appendMode = false) => {
+                if (appendMode) {
+                    set((state) => {
+                        const existingIds = new Set(state.camps.map(c => c.id));
+                        const newCamps = camps.filter(c => !existingIds.has(c.id));
+                        return { 
+                            camps: [...state.camps, ...newCamps]
+                        };
+                    });
+                } else {
+                    set({ 
+                        camps, 
+                        loading: false, 
+                        error: null, 
+                        isInitialized: true 
+                    });
+                }
             }
         );
         set({ unsubscribe: unsubscribeFn });

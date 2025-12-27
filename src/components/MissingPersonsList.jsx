@@ -6,6 +6,7 @@ import MarkerClusterGroup from 'react-leaflet-cluster';
 import 'leaflet/dist/leaflet.css';
 import '../utils/leafletIconFix';
 import { redIcon, greenIcon } from '../utils/leafletIconFix';
+import ScrollToTop from './shared/ScrollToTop';
 
 // Custom marker icons for different statuses
 const activeIcon = redIcon;
@@ -454,6 +455,8 @@ function MissingPersonsList({ role = 'responder' }) {
                     <p className="text-gray-500 text-lg">No missing persons found matching your criteria</p>
                 </div>
             )}
+
+            <ScrollToTop />
         </div>
     );
 }

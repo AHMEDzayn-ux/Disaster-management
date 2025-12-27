@@ -54,7 +54,7 @@ function EmergencyContacts() {
             {/* National Hotlines */}
             <div className="bg-white rounded-lg shadow-sm p-3 mb-3">
                 <h2 className="text-base font-bold text-gray-800 mb-2">📞 National Emergency Hotlines</h2>
-                <div className="grid grid-cols-9 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
                     {nationalHotlines.map((hotline, index) => (
                         <a
                             key={index}

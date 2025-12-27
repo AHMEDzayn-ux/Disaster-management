@@ -6,6 +6,7 @@ import MarkerClusterGroup from 'react-leaflet-cluster';
 import 'leaflet/dist/leaflet.css';
 import '../utils/leafletIconFix';
 import { redIcon, greenIcon } from '../utils/leafletIconFix';
+import ScrollToTop from './shared/ScrollToTop';
 
 // Custom marker icons for different statuses
 const activeIcon = redIcon;
@@ -423,6 +424,8 @@ function DisasterReportsList({ role = 'responder' }) {
                     </div>
                 </div>
             )}
+
+            <ScrollToTop />
         </div>
     );
 }

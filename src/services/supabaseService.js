@@ -48,15 +48,22 @@ export const getDocument = async (table, id) => {
 };
 
 // Get all documents from a table
-export const getAllDocuments = async (table) => {
+export const getAllDocuments = async (table, options = {}) => {
     try {
-        const { data, error } = await supabase
+        const { limit, offset = 0 } = options;
+        let query = supabase
             .from(table)
-            .select('*')
+            .select('*', { count: 'exact' })
             .order('created_at', { ascending: false });
+        
+        if (limit) {
+            query = query.range(offset, offset + limit - 1);
+        }
+
+        const { data, error, count } = await query;
 
         if (error) throw error;
-        return data || [];
+        return { data: data || [], total: count };
     } catch (error) {
         console.error(`Error getting all documents from ${table}:`, error);
         throw error;
@@ -97,28 +104,67 @@ export const deleteDocument = async (table, id) => {
     }
 };
 
-// Subscribe to real-time changes
+// Subscribe to real-time changes - progressive loading without delays
 export const subscribeToTable = async (table, callback) => {
-    // Fetch initial data immediately
-    const { data: initialData } = await supabase
+    const INITIAL_CHUNK = 30; // Show first 30 immediately
+    const CHUNK_SIZE = 50; // Load remaining in 50-record batches
+
+    // Fetch and show first chunk INSTANTLY
+    const { data: initialData, error, count } = await supabase
         .from(table)
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(0, INITIAL_CHUNK - 1);
     
+    if (error) {
+        console.error(`Error fetching ${table}:`, error);
+        callback([]);
+        return () => {};
+    }
+
+    // Show first chunk immediately - user sees data right away!
     callback(initialData || []);
 
-    // Then subscribe to real-time changes
+    // Load remaining data in background (if any)
+    const totalRecords = count || 0;
+    if (totalRecords > INITIAL_CHUNK) {
+        // Load remaining chunks without blocking
+        let offset = INITIAL_CHUNK;
+        
+        const loadRemainingChunks = async () => {
+            while (offset < totalRecords) {
+                const { data: nextChunk } = await supabase
+                    .from(table)
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .range(offset, offset + CHUNK_SIZE - 1);
+                
+                if (nextChunk && nextChunk.length > 0) {
+                    // Append new data as it arrives (no delay!)
+                    callback(nextChunk, true); // true = append mode
+                    offset += nextChunk.length;
+                } else {
+                    break;
+                }
+            }
+        };
+        
+        // Load in background without blocking UI
+        loadRemainingChunks();
+    }
+
+    // Subscribe to real-time updates
     const subscription = supabase
         .channel(`${table}_changes`)
         .on('postgres_changes', 
             { event: '*', schema: 'public', table }, 
             async (payload) => {
-                // Fetch all data when any change occurs
-                const { data } = await supabase
+                // Refetch all data on changes to ensure consistency
+                const { data: updatedData } = await supabase
                     .from(table)
                     .select('*')
                     .order('created_at', { ascending: false });
-                callback(data || []);
+                callback(updatedData || [], false); // false = replace mode
             }
         )
         .subscribe();
