@@ -126,7 +126,7 @@ function AnimalRescueDetail({ role: propRole }) {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-800 capitalize flex items-center gap-2">
-                            {getAnimalTypeIcon(rescue.animalType)} {rescue.animalType}
+                            {getAnimalTypeIcon(rescue.animalType)} {rescue.animalType || 'Unknown Animal'}
                             {rescue.breed && <span className="text-xl text-gray-600">({rescue.breed})</span>}
                         </h1>
                         <p className="text-gray-600">Report ID: #{rescue.id} • Reported {getTimeSince(rescue.reportedAt)}</p>
@@ -191,7 +191,7 @@ function AnimalRescueDetail({ role: propRole }) {
                             <div>
                                 <p className="text-sm text-gray-500">Condition</p>
                                 <div className="mt-1">
-                                    {getConditionBadge(rescue.condition)}
+                                    {rescue.condition && getConditionBadge(rescue.condition)}
                                 </div>
                             </div>
                             {rescue.healthDetails && (

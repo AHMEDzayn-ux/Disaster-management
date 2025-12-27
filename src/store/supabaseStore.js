@@ -437,3 +437,174 @@ export const useCampStore = create((set, get) => ({
         }
     },
 }));
+
+// Donations Store
+export const useDonationStore = create((set, get) => ({
+    donations: [],
+    totalRaised: 0,
+    donationStats: {
+        totalAmount: 0,
+        totalCount: 0,
+        avgDonation: 0,
+        successfulCount: 0,
+        pendingCount: 0
+    },
+    loading: false,
+    error: null,
+    unsubscribe: null,
+    isInitialized: false,
+
+    // Initialize real-time listener
+    subscribeToDonations: async () => {
+        const { isInitialized, unsubscribe } = get();
+        if (isInitialized && unsubscribe) {
+            return;
+        }
+        
+        set({ loading: true });
+        const unsubscribeFn = await subscribeToTable(
+            TABLES.DONATIONS,
+            (donations, appendMode = false) => {
+                if (appendMode) {
+                    set((state) => {
+                        const existingIds = new Set(state.donations.map(d => d.id));
+                        const newDonations = donations.filter(d => !existingIds.has(d.id));
+                        return { 
+                            donations: [...state.donations, ...newDonations]
+                        };
+                    });
+                } else {
+                    // Calculate total from successful payments
+                    const total = donations
+                        .filter(d => d.stripe_payment_status === 'succeeded')
+                        .reduce((sum, d) => sum + parseFloat(d.amount || 0), 0);
+                    
+                    set({ 
+                        donations,
+                        totalRaised: total,
+                        loading: false, 
+                        error: null, 
+                        isInitialized: true 
+                    });
+                }
+                
+                // Update stats
+                get().calculateStats();
+            }
+        );
+        set({ unsubscribe: unsubscribeFn });
+    },
+
+    unsubscribeFromDonations: () => {
+        const { unsubscribe } = get();
+        if (unsubscribe) {
+            unsubscribe();
+            set({ unsubscribe: null });
+        }
+    },
+
+    // Calculate donation statistics
+    calculateStats: () => {
+        const { donations } = get();
+        const successful = donations.filter(d => d.stripe_payment_status === 'succeeded');
+        const pending = donations.filter(d => d.stripe_payment_status === 'pending');
+        
+        const totalAmount = successful.reduce((sum, d) => sum + parseFloat(d.amount || 0), 0);
+        const avgDonation = successful.length > 0 ? totalAmount / successful.length : 0;
+        
+        set({
+            donationStats: {
+                totalAmount,
+                totalCount: donations.length,
+                avgDonation,
+                successfulCount: successful.length,
+                pendingCount: pending.length
+            },
+            totalRaised: totalAmount
+        });
+    },
+
+    // Fetch all donations
+    fetchDonations: async () => {
+        try {
+            set({ loading: true, error: null });
+            const donations = await getAllDocuments(TABLES.DONATIONS);
+            const total = donations
+                .filter(d => d.stripe_payment_status === 'succeeded')
+                .reduce((sum, d) => sum + parseFloat(d.amount || 0), 0);
+            
+            set({ donations, totalRaised: total, loading: false });
+            get().calculateStats();
+        } catch (error) {
+            set({ error: error.message, loading: false });
+        }
+    },
+
+    // Add donation (called after Stripe payment intent created)
+    addDonation: async (donation) => {
+        try {
+            set({ loading: true, error: null });
+            const newDonation = await createDocument(TABLES.DONATIONS, donation);
+            set((state) => ({
+                donations: [newDonation, ...state.donations],
+                loading: false
+            }));
+            get().calculateStats();
+            return newDonation;
+        } catch (error) {
+            set({ error: error.message, loading: false });
+            throw error;
+        }
+    },
+
+    // Update donation (for Stripe webhook status updates)
+    updateDonation: async (id, updatedDonation) => {
+        try {
+            set({ loading: true, error: null });
+            await updateDocument(TABLES.DONATIONS, id, updatedDonation);
+            set((state) => ({
+                donations: state.donations.map(donation =>
+                    donation.id === id ? { ...donation, ...updatedDonation } : donation
+                ),
+                loading: false
+            }));
+            get().calculateStats();
+        } catch (error) {
+            set({ error: error.message, loading: false });
+            throw error;
+        }
+    },
+
+    // Update payment status (webhook callback)
+    updatePaymentStatus: async (stripePaymentId, status) => {
+        try {
+            const { donations } = get();
+            const donation = donations.find(d => d.stripe_payment_id === stripePaymentId);
+            
+            if (donation) {
+                await get().updateDonation(donation.id, {
+                    stripe_payment_status: status,
+                    updated_at: new Date().toISOString()
+                });
+            }
+        } catch (error) {
+            console.error('Error updating payment status:', error);
+            throw error;
+        }
+    },
+
+    deleteDonation: async (id) => {
+        try {
+            set({ loading: true, error: null });
+            await deleteDocument(TABLES.DONATIONS, id);
+            set((state) => ({
+                donations: state.donations.filter(donation => donation.id !== id),
+                loading: false
+            }));
+            get().calculateStats();
+        } catch (error) {
+            set({ error: error.message, loading: false });
+            throw error;
+        }
+    },
+}));

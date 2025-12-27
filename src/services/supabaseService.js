@@ -11,7 +11,8 @@ export const TABLES = {
     MISSING_PERSONS: 'missing_persons',
     DISASTERS: 'disasters',
     ANIMAL_RESCUES: 'animal_rescues',
-    CAMPS: 'camps'
+    CAMPS: 'camps',
+    DONATIONS: 'donations'
 };
 
 // Create a new document

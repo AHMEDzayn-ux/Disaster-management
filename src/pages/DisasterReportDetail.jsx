@@ -96,7 +96,7 @@ function DisasterReportDetail({ role: propRole }) {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-800 capitalize flex items-center gap-2">
-                            {getDisasterIcon(disaster.disasterType)} {disaster.disasterType.replace('-', ' ')}
+                            {getDisasterIcon(disaster.disasterType)} {disaster.disasterType?.replace('-', ' ') || 'Unknown'}
                         </h1>
                         <p className="text-gray-600">Report ID: #{disaster.id}</p>
                     </div>
@@ -154,11 +154,11 @@ function DisasterReportDetail({ role: propRole }) {
                         <div className="space-y-3">
                             <div>
                                 <p className="text-sm text-gray-500">Name</p>
-                                <p className="font-medium text-gray-800">{disaster.reporterName}</p>
+                                <p className="font-medium text-gray-800">{disaster.reporterName || 'N/A'}</p>
                             </div>
                             <div>
                                 <p className="text-sm text-gray-500">Phone</p>
-                                <p className="font-medium text-gray-800">{disaster.contactNumber}</p>
+                                <p className="font-medium text-gray-800">{disaster.contactNumber || 'N/A'}</p>
                             </div>
                         </div>
                     </div>
@@ -172,9 +172,8 @@ function DisasterReportDetail({ role: propRole }) {
 
                     <div className="card">
                         <h3 className="text-lg font-semibold text-gray-800 mb-4">📍 Location</h3>
-                        <p className="text-gray-700 mb-3"><strong>Address:</strong> {disaster.location.address}</p>
-                        {disaster.occurredDate && <p className="text-gray-600 text-sm mb-3"><strong>Occurred:</strong> {formatDate(disaster.occurredDate)}</p>}
-                        <div style={{ height: '400px' }} className="rounded-lg overflow-hidden border-2 border-gray-200">
+                        <p className="text-gray-700 mb-3"><strong>Address:</strong> {disaster.location?.address || 'N/A'}</p>
+                        {disaster.occurredDate && <p className="text-gray-600 text-sm mb-3"><strong>Occurred:</strong> {formatDate(disaster.occurredDate)}</p>}                        {disaster.location?.lat && disaster.location?.lng && (<div style={{ height: '400px' }} className="rounded-lg overflow-hidden border-2 border-gray-200">
                             <MapContainer center={[disaster.location.lat, disaster.location.lng]} zoom={15} style={{ height: '100%', width: '100%' }}>
                                 <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                                 <Marker position={[disaster.location.lat, disaster.location.lng]}>
@@ -182,6 +181,7 @@ function DisasterReportDetail({ role: propRole }) {
                                 </Marker>
                             </MapContainer>
                         </div>
+                        )}
                     </div>
 
                     <div className="card">

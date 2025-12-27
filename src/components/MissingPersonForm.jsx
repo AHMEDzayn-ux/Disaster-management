@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { useMissingPersonStore } from '../store';
 import LocationPicker from './LocationPicker';
+import { isOnline, queueOfflineSubmission } from '../utils/offlineManager';
 
 function MissingPersonForm() {
     const { register, handleSubmit, formState: { errors }, reset, control, setValue } = useForm();
@@ -69,7 +70,17 @@ function MissingPersonForm() {
                 status: 'Active'
             };
 
-            await addMissingPerson(newReport);
+            // Check if offline
+            if (!isOnline()) {
+                console.log('📡 Offline - queueing missing person report');
+                await queueOfflineSubmission('missing_person', newReport);
+
+                // Show offline success message
+                alert('📡 You are offline. Your report has been saved and will be submitted automatically when connection returns.');
+            } else {
+                // Online - submit normally
+                await addMissingPerson(newReport);
+            }
 
             // Show success message and scroll to top
             setSubmitSuccess(true);

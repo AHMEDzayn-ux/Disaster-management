@@ -308,7 +308,7 @@ function DisasterReportsList({ role = 'responder' }) {
                                     <div className="flex items-start justify-between gap-2">
                                         <h3 className="text-lg font-bold text-gray-800 capitalize flex items-center gap-2">
                                             <span>{getDisasterIcon(disasterType)}</span>
-                                            {disasterType.replace('-', ' ')}
+                                            {disasterType?.replace('-', ' ') || 'Unknown'}
                                         </h3>
                                     </div>
 

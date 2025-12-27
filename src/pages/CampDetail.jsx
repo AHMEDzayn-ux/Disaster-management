@@ -80,7 +80,7 @@ function CampDetail() {
                     <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
                         {getCampTypeIcon(camp.campType)} {camp.campName}
                     </h1>
-                    <p className="text-gray-600 capitalize">{camp.campType.replace('-', ' ')} • {camp.district} District</p>
+                    <p className="text-gray-600 capitalize">{camp.campType?.replace('-', ' ') || 'Unknown'} • {camp.district} District</p>
                 </div>
                 <span className={`px-4 py-2 rounded-full text-sm font-semibold ${camp.status === 'Active' ? 'bg-success-100 text-success-700' : 'bg-gray-100 text-gray-700'}`}>
                     {camp.status}
@@ -112,11 +112,11 @@ function CampDetail() {
                         <h3 className="text-lg font-semibold text-gray-800 mb-4">Contact Person</h3>
                         <div className="space-y-2">
                             <p className="text-sm text-gray-600">Name</p>
-                            <p className="font-medium text-gray-800">{camp.contactPerson.name}</p>
+                            <p className="font-medium text-gray-800">{camp.contactPerson?.name || 'N/A'}</p>
                             <p className="text-sm text-gray-600 mt-3">Role</p>
-                            <p className="font-medium text-gray-800">{camp.contactPerson.role}</p>
+                            <p className="font-medium text-gray-800">{camp.contactPerson?.role || 'N/A'}</p>
                             <p className="text-sm text-gray-600 mt-3">Phone</p>
-                            <p className="font-medium text-gray-800">{camp.contactPerson.phone}</p>
+                            <p className="font-medium text-gray-800">{camp.contactPerson?.phone || 'N/A'}</p>
                         </div>
                     </div>
 
@@ -154,15 +154,17 @@ function CampDetail() {
                 <div className="lg:col-span-2 space-y-6">
                     <div className="card">
                         <h3 className="text-lg font-semibold text-gray-800 mb-4">📍 Location</h3>
-                        <p className="text-gray-700 mb-3"><strong>Address:</strong> {camp.location.address}</p>
-                        <div style={{ height: '300px' }} className="rounded-lg overflow-hidden border-2 border-gray-200">
-                            <MapContainer center={[camp.location.lat, camp.location.lng]} zoom={15} style={{ height: '100%', width: '100%' }}>
-                                <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                                <Marker position={[camp.location.lat, camp.location.lng]}>
-                                    <Popup><div className="p-2"><p className="font-bold">{camp.campName}</p><p className="text-sm text-gray-600">{camp.location.address}</p></div></Popup>
-                                </Marker>
-                            </MapContainer>
-                        </div>
+                        <p className="text-gray-700 mb-3"><strong>Address:</strong> {camp.location?.address || 'N/A'}</p>
+                        {camp.location?.lat && camp.location?.lng && (
+                            <div style={{ height: '300px' }} className="rounded-lg overflow-hidden border-2 border-gray-200">
+                                <MapContainer center={[camp.location.lat, camp.location.lng]} zoom={15} style={{ height: '100%', width: '100%' }}>
+                                    <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                                    <Marker position={[camp.location.lat, camp.location.lng]}>
+                                        <Popup><div className="p-2"><p className="font-bold">{camp.campName}</p><p className="text-sm text-gray-600">{camp.location.address}</p></div></Popup>
+                                    </Marker>
+                                </MapContainer>
+                            </div>
+                        )}
                     </div>
 
                     <div className="card">

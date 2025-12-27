@@ -123,7 +123,7 @@ function AnimalRescueList({ role = 'responder' }) {
         const status = String(r.status || '').toLowerCase();
         return status === 'active' || status === 'pending' || status === 'open';
     }).length;
-    
+
     const rescuedCount = animalRescues.filter(r => {
         const status = String(r.status || '').toLowerCase();
         return status === 'resolved' || status === 'rescued' || status === 'completed' || status === 'closed';
@@ -374,7 +374,7 @@ function AnimalRescueList({ role = 'responder' }) {
                                             <div className="pt-2 border-t border-gray-200 space-y-2">
                                                 <div className="flex items-start gap-2">
                                                     <span className="text-gray-500 text-sm">📍</span>
-                                                    <span className="text-sm text-gray-700 line-clamp-2">{rescue.location.address}</span>
+                                                    <span className="text-sm text-gray-700 line-clamp-2">{rescue.location?.address || 'Unknown'}</span>
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-gray-500 text-sm">⏱️</span>

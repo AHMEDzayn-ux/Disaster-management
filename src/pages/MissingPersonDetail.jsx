@@ -119,14 +119,16 @@ function MissingPersonDetail({ role: propRole }) {
                 {/* Left Column - Photo & Basic Info */}
                 <div className="lg:col-span-1 space-y-6">
                     {/* Photo */}
-                    <div className="card">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Photo</h3>
-                        <img
-                            src={person.photo}
-                            alt={person.name}
-                            className="w-full rounded-lg border-2 border-gray-200 shadow-md"
-                        />
-                    </div>
+                    {person.photo && (
+                        <div className="card">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-4">Photo</h3>
+                            <img
+                                src={person.photo}
+                                alt={person.name || 'Missing Person'}
+                                className="w-full rounded-lg border-2 border-gray-200 shadow-md"
+                            />
+                        </div>
+                    )}
 
                     {/* Basic Information */}
                     <div className="card">
@@ -134,12 +136,12 @@ function MissingPersonDetail({ role: propRole }) {
                         <div className="space-y-3">
                             <div>
                                 <p className="text-sm text-gray-500">Full Name</p>
-                                <p className="font-medium text-gray-800">{person.name}</p>
+                                <p className="font-medium text-gray-800">{person.name || 'Unknown'}</p>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <p className="text-sm text-gray-500">Age</p>
-                                    <p className="font-medium text-gray-800">{person.age} years</p>
+                                    <p className="font-medium text-gray-800">{person.age || 'N/A'} {person.age ? 'years' : ''}</p>
                                 </div>
                                 <div>
                                     <p className="text-sm text-gray-500">Gender</p>
@@ -161,13 +163,17 @@ function MissingPersonDetail({ role: propRole }) {
                         <div className="space-y-3">
                             <div>
                                 <p className="text-sm text-gray-500">Name</p>
-                                <p className="font-medium text-gray-800">{reporterName}</p>
+                                <p className="font-medium text-gray-800">{reporterName || 'N/A'}</p>
                             </div>
                             <div>
                                 <p className="text-sm text-gray-500">Phone Number</p>
-                                <a href={`tel:${contactNumber}`} className="font-medium text-primary-600 hover:text-primary-700">
-                                    📞 {contactNumber}
-                                </a>
+                                {contactNumber ? (
+                                    <a href={`tel:${contactNumber}`} className="font-medium text-primary-600 hover:text-primary-700">
+                                        📞 {contactNumber}
+                                    </a>
+                                ) : (
+                                    <p className="font-medium text-gray-800">N/A</p>
+                                )}
                             </div>
                             <div>
                                 <p className="text-sm text-gray-500">Reported At</p>

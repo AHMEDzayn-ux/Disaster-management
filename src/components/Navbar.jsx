@@ -33,26 +33,29 @@ function Navbar({ userType = 'reporter' }) {
 
     return (
         <nav className={`${navColor} shadow-lg`}>
-            <div className="px-4">
-                <div className="flex justify-between items-center py-4">
-                    {/* Logo - Left aligned */}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex justify-between items-center h-16">
+                    {/* Logo */}
                     <div className="flex-shrink-0">
-                        <Link to="/" className="text-white text-xl md:text-2xl font-bold flex items-center gap-2">
+                        <Link to="/" className="text-white text-lg lg:text-xl font-bold flex items-center gap-2 hover:opacity-90 transition-opacity">
                             {userType === 'reporter' ? '📢' : '🤝'}
-                            <span className="hidden sm:inline">Disaster Management - {userType === 'reporter' ? 'Reporting' : 'Responding'}</span>
+                            <div className="flex flex-col leading-tight">
+                                <span className="hidden sm:inline text-sm font-semibold opacity-90">Sri Lanka</span>
+                                <span className="hidden sm:inline">Disaster Management</span>
+                            </div>
                             <span className="sm:hidden">DM SL</span>
                         </Link>
                     </div>
 
-                    {/* Desktop menu - Right aligned */}
-                    <div className="hidden md:flex items-center space-x-2 ml-auto">
+                    {/* Desktop menu and switcher - Right aligned */}
+                    <div className="hidden lg:flex items-center gap-1">
                         {navLinks.map((link) => (
                             <Link
                                 key={link.path}
                                 to={link.path}
-                                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive(link.path)
-                                    ? `${navColorHover} text-white`
-                                    : `text-white/90 hover:${navColorLight} hover:text-white`
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap ${isActive(link.path)
+                                    ? 'bg-white/25 text-white shadow-sm'
+                                    : 'text-white/90 hover:bg-white/15 hover:text-white'
                                     }`}
                             >
                                 {link.label}
@@ -60,20 +63,29 @@ function Navbar({ userType = 'reporter' }) {
                         ))}
 
                         {/* Mode Switcher */}
-                        <div className="ml-4 pl-4 border-l border-white/30">
-                            <Link
-                                to={userType === 'reporter' ? '/respond' : '/report'}
-                                className="px-3 py-2 rounded-md text-sm font-medium bg-white/20 hover:bg-white/30 text-white transition-colors flex items-center gap-2"
-                            >
-                                {userType === 'reporter' ? '🤝 Switch to Responder' : '📢 Switch to Reporter'}
-                            </Link>
-                        </div>
+                        <Link
+                            to={userType === 'reporter' ? '/respond' : '/report'}
+                            className="ml-2 px-4 py-2 rounded-lg text-sm font-medium bg-white text-gray-800 hover:bg-white/90 transition-all duration-200 shadow-md flex items-center gap-2"
+                        >
+                            {userType === 'reporter' ? (
+                                <>
+                                    <span>🤝</span>
+                                    <span>Respond Mode</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span>📢</span>
+                                    <span>Report Mode</span>
+                                </>
+                            )}
+                        </Link>
                     </div>
 
                     {/* Mobile menu button */}
                     <button
                         onClick={() => setIsOpen(!isOpen)}
-                        className="md:hidden text-white focus:outline-none"
+                        className="lg:hidden text-white focus:outline-none p-2 rounded-md hover:bg-white/10 transition-colors"
+                        aria-label="Toggle menu"
                     >
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             {isOpen ? (
@@ -87,15 +99,15 @@ function Navbar({ userType = 'reporter' }) {
 
                 {/* Mobile menu */}
                 {isOpen && (
-                    <div className="md:hidden pb-4">
+                    <div className="lg:hidden py-3 space-y-1">
                         {navLinks.map((link) => (
                             <Link
                                 key={link.path}
                                 to={link.path}
                                 onClick={() => setIsOpen(false)}
-                                className={`block px-3 py-2 rounded-md text-base font-medium ${isActive(link.path)
-                                    ? `${navColorHover} text-white`
-                                    : `text-white/90 hover:${navColorLight} hover:text-white`
+                                className={`block px-4 py-2.5 rounded-lg text-base font-medium transition-all ${isActive(link.path)
+                                    ? 'bg-white/25 text-white'
+                                    : 'text-white/90 hover:bg-white/15 hover:text-white'
                                     }`}
                             >
                                 {link.label}
@@ -103,13 +115,15 @@ function Navbar({ userType = 'reporter' }) {
                         ))}
 
                         {/* Mobile Mode Switcher */}
-                        <Link
-                            to={userType === 'reporter' ? '/respond' : '/report'}
-                            onClick={() => setIsOpen(false)}
-                            className="block px-3 py-2 mt-4 pt-4 border-t border-white/20 rounded-md text-base font-medium bg-white/20 hover:bg-white/30 text-white"
-                        >
-                            {userType === 'reporter' ? '🤝 Switch to Responder' : '📢 Switch to Reporter'}
-                        </Link>
+                        <div className="pt-3 mt-3 border-t border-white/20">
+                            <Link
+                                to={userType === 'reporter' ? '/respond' : '/report'}
+                                onClick={() => setIsOpen(false)}
+                                className="block px-4 py-2.5 rounded-lg text-base font-medium bg-white text-gray-800 hover:bg-white/90 transition-all"
+                            >
+                                {userType === 'reporter' ? '🤝 Respond Mode' : '📢 Report Mode'}
+                            </Link>
+                        </div>
                     </div>
                 )}
             </div>

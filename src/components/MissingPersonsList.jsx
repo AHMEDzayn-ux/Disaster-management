@@ -258,25 +258,27 @@ function MissingPersonsList({ role = 'responder' }) {
                         <div key={person.id} className="card hover:shadow-lg transition-shadow">
                             <div className="flex gap-4">
                                 {/* Photo */}
-                                <div className="flex-shrink-0">
-                                    <img
-                                        src={person.photo}
-                                        alt={person.name}
-                                        className="w-24 h-24 rounded-lg object-cover border-2 border-gray-200"
-                                    />
-                                </div>
+                                {person.photo && (
+                                    <div className="flex-shrink-0">
+                                        <img
+                                            src={person.photo}
+                                            alt={person.name || 'Missing Person'}
+                                            className="w-24 h-24 rounded-lg object-cover border-2 border-gray-200"
+                                        />
+                                    </div>
+                                )}
 
                                 {/* Details */}
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-start justify-between mb-2">
-                                        <h3 className="text-lg font-bold text-gray-800 truncate">{person.name}</h3>
+                                        <h3 className="text-lg font-bold text-gray-800 truncate">{person.name || 'Unknown'}</h3>
                                         <span className={`px-2 py-1 rounded text-xs font-semibold ${getStatusBadge(person.status).className}`}>
                                             {getStatusBadge(person.status).text}
                                         </span>
                                     </div>
 
                                     <div className="space-y-1 text-sm text-gray-600">
-                                        <p><span className="font-medium">Age:</span> {person.age} | <span className="font-medium">Gender:</span> {person.gender}</p>
+                                        <p><span className="font-medium">Age:</span> {person.age || 'N/A'} | <span className="font-medium">Gender:</span> {person.gender || 'N/A'}</p>
                                         <p className="text-xs text-gray-500 truncate" title={(person.last_seen_location || person.lastSeenLocation)?.address}>
                                             📍 {(person.last_seen_location || person.lastSeenLocation)?.address}
                                         </p>
@@ -313,9 +315,11 @@ function MissingPersonsList({ role = 'responder' }) {
                                 >
                                     View Details
                                 </button>
-                                <button className="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
-                                    <a href={`tel:${person.contactNumber}`}>📞 Call</a>
-                                </button>
+                                {(person.contactNumber || person.contact_number) && (
+                                    <button className="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
+                                        <a href={`tel:${person.contactNumber || person.contact_number}`}>📞 Call</a>
+                                    </button>
+                                )}
                             </div>
 
                             {/* Reporter Info */}

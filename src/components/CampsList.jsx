@@ -254,7 +254,7 @@ function CampsList({ role = 'responder' }) {
                                                 <span>{getCampTypeIcon(camp.campType)}</span>
                                                 {camp.campName}
                                             </h3>
-                                            <p className="text-sm text-gray-600 capitalize">{camp.campType.replace('-', ' ')}</p>
+                                            <p className="text-sm text-gray-600 capitalize">{camp.campType?.replace('-', ' ') || 'Unknown'}</p>
                                         </div>
                                         <span className={`px-3 py-1 rounded-full text-xs font-semibold ${camp.status === 'Active' ? 'bg-success-100 text-success-700' : 'bg-gray-100 text-gray-700'}`}>
                                             {camp.status}
@@ -276,10 +276,10 @@ function CampsList({ role = 'responder' }) {
 
                                         <div className="pt-2 border-t border-gray-200">
                                             <p className="text-sm text-gray-700 mb-2">
-                                                <span className="font-medium">📍</span> {camp.location.address}
+                                                <span className="font-medium">📍</span> {camp.location?.address || 'N/A'}
                                             </p>
                                             <p className="text-sm text-gray-700">
-                                                <span className="font-medium">☎️</span> {camp.contactPerson.name} • {camp.contactPerson.phone}
+                                                <span className="font-medium">☎️</span> {camp.contactPerson?.name || 'N/A'} • {camp.contactPerson?.phone || 'N/A'}
                                             </p>
                                         </div>
 
