@@ -190,7 +190,7 @@ function CampsList({ role = 'responder' }) {
             </div >
 
             <div className="card mb-6">
-                <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
                         <input type="text" placeholder="Camp name, location..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="input-field" />

@@ -15,7 +15,7 @@ function RespondDashboard() {
 
             <div className="flex gap-4">
                 {/* Main Cards Section - Left aligned */}
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {/* View Missing Persons */}
                     <Link to="/missing-persons-list" className="group">
                         <div className="card hover:shadow-xl transition-all border-l-4 border-danger-500 h-full">
@@ -137,8 +137,8 @@ function RespondDashboard() {
                     </Link>
                 </div>
 
-                {/* Quick Stats - Right Sidebar */}
-                <div className="w-56 flex-shrink-0">
+                {/* Quick Stats - Right Sidebar - Hidden on mobile/tablet */}
+                <div className="hidden xl:block w-56 flex-shrink-0">
                     <div className="sticky top-4">
                         <h2 className="text-base font-bold text-gray-800 mb-2">Quick Stats</h2>
                         <div className="space-y-2">
