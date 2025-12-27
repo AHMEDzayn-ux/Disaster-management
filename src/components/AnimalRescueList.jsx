@@ -110,8 +110,27 @@ function AnimalRescueList({ role = 'responder' }) {
         return matchesStatus && matchesDistrict && matchesSearch;
     });
 
-    const activeCount = animalRescues.filter(r => r.status === 'Active').length;
-    const rescuedCount = animalRescues.filter(r => r.status === 'Resolved').length;
+    // Log for debugging
+    console.log('Animal Rescues Data:', animalRescues);
+    console.log('Total animal rescues:', animalRescues.length);
+    if (animalRescues.length > 0) {
+        console.log('Sample status values:', animalRescues.slice(0, 3).map(r => ({ id: r.id, status: r.status, type: typeof r.status })));
+        console.log('All unique statuses:', [...new Set(animalRescues.map(r => r.status))]);
+    }
+
+    // Try multiple status value formats to handle database variations
+    const activeCount = animalRescues.filter(r => {
+        const status = String(r.status || '').toLowerCase();
+        return status === 'active' || status === 'pending' || status === 'open';
+    }).length;
+    
+    const rescuedCount = animalRescues.filter(r => {
+        const status = String(r.status || '').toLowerCase();
+        return status === 'resolved' || status === 'rescued' || status === 'completed' || status === 'closed';
+    }).length;
+
+    console.log('Active count:', activeCount, 'Rescued count:', rescuedCount);
+    console.log('Filtered by Active status:', animalRescues.filter(r => String(r.status || '').toLowerCase() === 'active'));
 
     const getStatusBadge = (status) => {
         switch (status) {
@@ -201,7 +220,7 @@ function AnimalRescueList({ role = 'responder' }) {
                             {role === 'responder' ? '🐾 Animal Rescue Operations' : '🐾 Animal Rescue Reports'}
                         </h1>
                         <p className="text-sm text-gray-600 mt-1">
-                            {activeCount} active rescue{activeCount !== 1 ? 's' : ''} • {rescuedCount} rescued
+                            {activeCount} need{activeCount !== 1 ? '' : 's'} rescue • {rescuedCount} rescue{rescuedCount !== 1 ? 's' : ''} completed
                         </p>
                     </div>
 
