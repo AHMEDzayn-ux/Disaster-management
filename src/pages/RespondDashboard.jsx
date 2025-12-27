@@ -138,7 +138,7 @@ function RespondDashboard() {
                 </div>
 
                 {/* Quick Stats - Right Sidebar - Hidden on mobile/tablet */}
-                <div className="hidden xl:block w-56 flex-shrink-0">
+                <div className="hidden lg:block w-56 flex-shrink-0">
                     <div className="sticky top-4">
                         <h2 className="text-base font-bold text-gray-800 mb-2">Quick Stats</h2>
                         <div className="space-y-2">
