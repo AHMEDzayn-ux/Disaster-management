@@ -359,7 +359,7 @@ function AnimalRescueList({ role = 'responder' }) {
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-gray-500 text-sm">⏱️</span>
-                                                    <span className="text-sm text-gray-600">Reported {getTimeSince(rescue.reportedAt)}</span>
+                                                    <span className="text-sm text-gray-600">Reported {getTimeSince(rescue.reported_at || rescue.reportedAt)}</span>
                                                 </div>
                                                 {rescue.accessibility && (
                                                     <div className="flex items-center gap-2">
