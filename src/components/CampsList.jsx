@@ -190,7 +190,7 @@ function CampsList({ role = 'responder' }) {
             </div >
 
             <div className="card mb-6">
-                <div className="grid grid-cols-1 sm:grid-cols-6 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-6 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
                         <input type="text" placeholder="Camp name, location..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="input-field" />
@@ -232,7 +232,8 @@ function CampsList({ role = 'responder' }) {
                         </select>
                     </div>
                     <div className="flex items-end">
-                        <button onClick={() => { setSearchTerm(''); setStatusFilter('all'); setTypeFilter('all'); setDistrictFilter('all'); setNeedsFilter('all'); }} className="btn-secondary w-full">
+                        <button onClick={() => { setSearchTerm(''); setStatusFilter('all'); setTypeFilter('all'); setDistrictFilter('all'); setNeedsFilter('all'); }} className="w-full px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors flex items-center justify-center gap-2">
+                            <span>✕</span>
                             Clear Filters
                         </button>
                     </div>

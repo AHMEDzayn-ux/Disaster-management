@@ -187,7 +187,7 @@ function DisasterReportsList({ role = 'responder' }) {
                             {role === 'responder' ? '🚨 Disaster Response Operations' : '🚨 Disaster Reports'}
                         </h1>
                         <p className="text-sm text-gray-600 mt-1">
-                            {activeCount} active • {criticalCount} critical • {resolvedCount} resolved
+                            {activeCount} ongoing disasters • {criticalCount} critical severity • {resolvedCount} resolved cases
                         </p>
                     </div>
 
@@ -216,7 +216,7 @@ function DisasterReportsList({ role = 'responder' }) {
 
             {/* Filters */}
             <div className="card mb-6">
-                <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
                         <input
@@ -266,8 +266,9 @@ function DisasterReportsList({ role = 'responder' }) {
                                 setSeverityFilter('all');
                                 setDistrictFilter('all');
                             }}
-                            className="btn-secondary w-full"
+                            className="w-full px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
                         >
+                            <span>✕</span>
                             Clear Filters
                         </button>
                     </div>

@@ -1,4 +1,5 @@
 import { supabase } from '../config/supabase';
+import { getCachedData, setCachedData, invalidateCache } from '../utils/cacheManager';
 
 /**
  * Supabase service layer
@@ -23,6 +24,10 @@ export const createDocument = async (table, data) => {
             .single();
 
         if (error) throw error;
+        
+        // Invalidate cache when new data is created
+        invalidateCache(table);
+        
         return result;
     } catch (error) {
         console.error(`Error creating document in ${table}:`, error);
@@ -81,6 +86,10 @@ export const updateDocument = async (table, id, updates) => {
             .single();
 
         if (error) throw error;
+        
+        // Invalidate cache when data is updated
+        invalidateCache(table);
+        
         return data;
     } catch (error) {
         console.error(`Error updating document in ${table}:`, error);
@@ -97,6 +106,10 @@ export const deleteDocument = async (table, id) => {
             .eq('id', id);
 
         if (error) throw error;
+        
+        // Invalidate cache when data is deleted
+        invalidateCache(table);
+        
         return true;
     } catch (error) {
         console.error(`Error deleting document from ${table}:`, error);
@@ -104,12 +117,47 @@ export const deleteDocument = async (table, id) => {
     }
 };
 
-// Subscribe to real-time changes - progressive loading without delays
+// Subscribe to real-time changes - progressive loading with caching
 export const subscribeToTable = async (table, callback) => {
     const INITIAL_CHUNK = 30; // Show first 30 immediately
     const CHUNK_SIZE = 50; // Load remaining in 50-record batches
 
-    // Fetch and show first chunk INSTANTLY
+    // Check cache first
+    const cachedResult = getCachedData(table);
+    if (cachedResult) {
+        // Use cached data immediately - instant load!
+        callback(cachedResult.data || []);
+        
+        // Still subscribe to real-time updates in background
+        const subscription = supabase
+            .channel(`${table}_changes`)
+            .on('postgres_changes', 
+                { event: '*', schema: 'public', table }, 
+                async (payload) => {
+                    // Invalidate cache on any change
+                    invalidateCache(table);
+                    
+                    // Refetch all data
+                    const { data: updatedData, count } = await supabase
+                        .from(table)
+                        .select('*', { count: 'exact' })
+                        .order('created_at', { ascending: false });
+                    
+                    const allData = updatedData || [];
+                    callback(allData, false); // false = replace mode
+                    
+                    // Update cache
+                    setCachedData(table, allData, count);
+                }
+            )
+            .subscribe();
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    }
+
+    // No cache - fetch and show first chunk INSTANTLY
     const { data: initialData, error, count } = await supabase
         .from(table)
         .select('*', { count: 'exact' })
@@ -124,6 +172,9 @@ export const subscribeToTable = async (table, callback) => {
 
     // Show first chunk immediately - user sees data right away!
     callback(initialData || []);
+
+    // Array to collect all data for caching
+    let allData = [...(initialData || [])];
 
     // Load remaining data in background (if any)
     const totalRecords = count || 0;
@@ -142,15 +193,22 @@ export const subscribeToTable = async (table, callback) => {
                 if (nextChunk && nextChunk.length > 0) {
                     // Append new data as it arrives (no delay!)
                     callback(nextChunk, true); // true = append mode
+                    allData = [...allData, ...nextChunk];
                     offset += nextChunk.length;
                 } else {
                     break;
                 }
             }
+            
+            // Cache all data after loading completes
+            setCachedData(table, allData, totalRecords);
         };
         
         // Load in background without blocking UI
         loadRemainingChunks();
+    } else {
+        // Cache the initial data if it's all we have
+        setCachedData(table, allData, totalRecords);
     }
 
     // Subscribe to real-time updates
@@ -159,12 +217,20 @@ export const subscribeToTable = async (table, callback) => {
         .on('postgres_changes', 
             { event: '*', schema: 'public', table }, 
             async (payload) => {
+                // Invalidate cache on any change
+                invalidateCache(table);
+                
                 // Refetch all data on changes to ensure consistency
-                const { data: updatedData } = await supabase
+                const { data: updatedData, count } = await supabase
                     .from(table)
-                    .select('*')
+                    .select('*', { count: 'exact' })
                     .order('created_at', { ascending: false });
-                callback(updatedData || [], false); // false = replace mode
+                
+                const freshData = updatedData || [];
+                callback(freshData, false); // false = replace mode
+                
+                // Update cache with fresh data
+                setCachedData(table, freshData, count);
             }
         )
         .subscribe();

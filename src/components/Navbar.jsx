@@ -110,15 +110,6 @@ function Navbar({ userType = 'reporter' }) {
                         >
                             {userType === 'reporter' ? '🤝 Switch to Responder' : '📢 Switch to Reporter'}
                         </Link>
-
-                        {/* Mobile Home Link */}
-                        <Link
-                            to="/"
-                            onClick={() => setIsOpen(false)}
-                            className="block px-3 py-2 mt-2 border-t border-white/20 text-white/80 text-sm"
-                        >
-                            ← Switch to {userType === 'reporter' ? 'Respond' : 'Report'} Mode
-                        </Link>
                     </div>
                 )}
             </div>

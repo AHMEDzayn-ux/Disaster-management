@@ -16,26 +16,6 @@ function RespondDashboard() {
             <div className="flex gap-4">
                 {/* Main Cards Section - Left aligned */}
                 <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {/* View Missing Persons */}
-                    <Link to="/missing-persons-list" className="group">
-                        <div className="card hover:shadow-xl transition-all border-l-4 border-danger-500 h-full">
-                            <div className="flex flex-col items-center justify-center gap-3 text-center h-full">
-                                <div className="text-4xl">🔍</div>
-                                <div>
-                                    <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-danger-600">
-                                        Missing Persons List
-                                    </h3>
-                                    <p className="text-gray-600 mb-3">
-                                        Search and help locate missing people
-                                    </p>
-                                    <span className="text-sm font-semibold text-danger-600">
-                                        View List →
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </Link>
-
                     {/* Active Disasters */}
                     <Link to="/disasters-list" className="group">
                         <div className="card hover:shadow-xl transition-all border-l-4 border-orange-500 h-full">
@@ -56,20 +36,40 @@ function RespondDashboard() {
                         </div>
                     </Link>
 
-                    {/* Volunteer Registration */}
-                    <Link to="/volunteers" className="group">
-                        <div className="card hover:shadow-xl transition-all border-l-4 border-success-500 h-full">
+                    {/* View Missing Persons */}
+                    <Link to="/missing-persons-list" className="group">
+                        <div className="card hover:shadow-xl transition-all border-l-4 border-danger-500 h-full">
                             <div className="flex flex-col items-center justify-center gap-3 text-center h-full">
-                                <div className="text-4xl">🙋</div>
+                                <div className="text-4xl">🔍</div>
                                 <div>
-                                    <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-success-600">
-                                        Register as Volunteer
+                                    <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-danger-600">
+                                        Missing Persons List
                                     </h3>
                                     <p className="text-gray-600 mb-3">
-                                        Join rescue and relief efforts
+                                        Search and help locate missing people
                                     </p>
-                                    <span className="text-sm font-semibold text-success-600">
-                                        Register →
+                                    <span className="text-sm font-semibold text-danger-600">
+                                        View List →
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </Link>
+
+                    {/* Animal Rescue List */}
+                    <Link to="/animal-rescue-list" className="group">
+                        <div className="card hover:shadow-xl transition-all border-l-4 border-blue-500 h-full">
+                            <div className="flex flex-col items-center justify-center gap-3 text-center h-full">
+                                <div className="text-4xl">🐾</div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-blue-600">
+                                        Animal Rescue Requests
+                                    </h3>
+                                    <p className="text-gray-600 mb-3">
+                                        Coordinate animal rescue operations
+                                    </p>
+                                    <span className="text-sm font-semibold text-blue-600">
+                                        View Requests →
                                     </span>
                                 </div>
                             </div>
@@ -96,6 +96,26 @@ function RespondDashboard() {
                         </div>
                     </Link>
 
+                    {/* Volunteer Registration */}
+                    <Link to="/volunteers" className="group">
+                        <div className="card hover:shadow-xl transition-all border-l-4 border-success-500 h-full">
+                            <div className="flex flex-col items-center justify-center gap-3 text-center h-full">
+                                <div className="text-4xl">🙋</div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-success-600">
+                                        Register as Volunteer
+                                    </h3>
+                                    <p className="text-gray-600 mb-3">
+                                        Join rescue and relief efforts
+                                    </p>
+                                    <span className="text-sm font-semibold text-success-600">
+                                        Register →
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </Link>
+
                     {/* Donations */}
                     <Link to="/donations" className="group">
                         <div className="card hover:shadow-xl transition-all border-l-4 border-purple-500 h-full">
@@ -110,26 +130,6 @@ function RespondDashboard() {
                                     </p>
                                     <span className="text-sm font-semibold text-purple-600">
                                         Donate Now →
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </Link>
-
-                    {/* Animal Rescue List */}
-                    <Link to="/animal-rescue-list" className="group">
-                        <div className="card hover:shadow-xl transition-all border-l-4 border-blue-500 h-full">
-                            <div className="flex flex-col items-center justify-center gap-3 text-center h-full">
-                                <div className="text-4xl">🐾</div>
-                                <div>
-                                    <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-blue-600">
-                                        Animal Rescue Requests
-                                    </h3>
-                                    <p className="text-gray-600 mb-3">
-                                        Coordinate animal rescue operations
-                                    </p>
-                                    <span className="text-sm font-semibold text-blue-600">
-                                        View Requests →
                                     </span>
                                 </div>
                             </div>

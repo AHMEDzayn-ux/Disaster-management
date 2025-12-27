@@ -14,26 +14,6 @@ function ReportDashboard() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {/* Missing Person Report */}
-                <Link to="/missing-persons" className="group">
-                    <div className="card hover:shadow-xl transition-all border-l-4 border-danger-500 h-full">
-                        <div className="flex items-start gap-4">
-                            <div className="text-4xl">👤</div>
-                            <div className="flex-1">
-                                <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-danger-600">
-                                    Report Missing Person
-                                </h3>
-                                <p className="text-gray-600 mb-3">
-                                    Report someone missing during disaster
-                                </p>
-                                <span className="text-sm font-semibold text-danger-600">
-                                    Report Now →
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </Link>
-
                 {/* Disaster Report */}
                 <Link to="/disasters" className="group">
                     <div className="card hover:shadow-xl transition-all border-l-4 border-orange-500 h-full">
@@ -47,6 +27,26 @@ function ReportDashboard() {
                                     Report floods, fires, landslides, etc.
                                 </p>
                                 <span className="text-sm font-semibold text-orange-600">
+                                    Report Now →
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </Link>
+
+                {/* Missing Person Report */}
+                <Link to="/missing-persons" className="group">
+                    <div className="card hover:shadow-xl transition-all border-l-4 border-danger-500 h-full">
+                        <div className="flex items-start gap-4">
+                            <div className="text-4xl">👤</div>
+                            <div className="flex-1">
+                                <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-danger-600">
+                                    Report Missing Person
+                                </h3>
+                                <p className="text-gray-600 mb-3">
+                                    Report someone missing during disaster
+                                </p>
+                                <span className="text-sm font-semibold text-danger-600">
                                     Report Now →
                                 </span>
                             </div>
