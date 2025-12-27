@@ -1,25 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCampStore } from '../store';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-});
+import '../utils/leafletIconFix';
 
 function CampDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { camps, updateOccupancy, closeCamp } = useCampStore();
+    const { camps, updateOccupancy, closeCamp, subscribeToCamps, isInitialized } = useCampStore();
+
+    // Ensure data is loaded
+    useEffect(() => {
+        if (!isInitialized) {
+            subscribeToCamps();
+        }
+    }, [isInitialized, subscribeToCamps]);
+
     const [showOccupancyDialog, setShowOccupancyDialog] = useState(false);
     const [newOccupancy, setNewOccupancy] = useState('');
 
-    const camp = camps.find(c => c.id === parseInt(id));
+    const camp = camps.find(c => c.id === id || c.id === parseInt(id));
+
+    // Show loading while data is being fetched
+    if (!isInitialized) {
+        return (
+            <div className="container mx-auto px-4 py-12 text-center">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary-600 border-t-transparent mb-4"></div>
+                <p className="text-gray-600">Loading...</p>
+            </div>
+        );
+    }
 
     if (!camp) {
         return (

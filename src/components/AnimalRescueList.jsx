@@ -3,35 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useAnimalRescueStore } from '../store';
 import { MapContainer, TileLayer, Marker, Popup, Rectangle, useMap } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
-import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-
-// Fix leaflet default marker icon
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-});
+import '../utils/leafletIconFix';
+import { redIcon, greenIcon } from '../utils/leafletIconFix';
 
 // Custom marker icons for different statuses
-const activeIcon = new L.Icon({
-    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
-});
-
-const resolvedIcon = new L.Icon({
-    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
-});
+const activeIcon = redIcon;
+const resolvedIcon = greenIcon;
 
 // Approximate district boundaries for Sri Lanka (expanded to cover full districts)
 const districtBounds = {
@@ -81,16 +59,25 @@ function MapController({ districtFilter, allDistricts }) {
 
 function AnimalRescueList({ role = 'responder' }) {
     const navigate = useNavigate();
-    const { animalRescues, subscribeToAnimalRescues, unsubscribeFromAnimalRescues } = useAnimalRescueStore();
+    const { animalRescues, loading, isInitialized, subscribeToAnimalRescues, unsubscribeFromAnimalRescues } = useAnimalRescueStore();
     const [statusFilter, setStatusFilter] = useState('all');
     const [districtFilter, setDistrictFilter] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'map'
+    const [isInitializing, setIsInitializing] = useState(!isInitialized);
 
     // Subscribe to real-time updates on mount
     useEffect(() => {
-        subscribeToAnimalRescues();
-        return () => unsubscribeFromAnimalRescues();
+        if (!isInitialized) {
+            const initialize = async () => {
+                await subscribeToAnimalRescues();
+                setIsInitializing(false);
+            };
+            initialize();
+        } else {
+            setIsInitializing(false);
+        }
+        // Don't unsubscribe on unmount to maintain cache
     }, []);
 
     // All 25 districts in Sri Lanka
@@ -116,11 +103,11 @@ function AnimalRescueList({ role = 'responder' }) {
         const matchesStatus = statusFilter === 'all' ||
             (statusFilter === 'active' && rescue.status === 'Active') ||
             (statusFilter === 'rescued' && rescue.status === 'Resolved');
-        const rescueDistrict = getDistrictFromAddress(rescue.location.address);
+        const rescueDistrict = getDistrictFromAddress(rescue.location?.address || '');
         const matchesDistrict = districtFilter === 'all' || rescueDistrict === districtFilter;
-        const matchesSearch = rescue.animalType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            rescue.location.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            rescue.description.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesSearch = (rescue.animalType || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (rescue.location?.address || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (rescue.description || '').toLowerCase().includes(searchTerm.toLowerCase());
         return matchesStatus && matchesDistrict && matchesSearch;
     });
 
@@ -190,6 +177,20 @@ function AnimalRescueList({ role = 'responder' }) {
         const route = role === 'responder' ? `/animal-rescue-list/${rescue.id}` : `/animal-rescue/${rescue.id}`;
         navigate(route);
     };
+
+    // Show loading state while initializing
+    if (isInitializing) {
+        return (
+            <div className="container mx-auto px-4 py-6">
+                <div className="flex items-center justify-center min-h-[400px]">
+                    <div className="text-center">
+                        <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary-600 border-t-transparent mb-4"></div>
+                        <p className="text-gray-600">Loading animal rescue requests...</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="container mx-auto px-4 py-6 max-w-7xl">
@@ -417,7 +418,7 @@ function AnimalRescueList({ role = 'responder' }) {
                                 disableClusteringAtZoom={9}
                                 removeOutsideVisibleBounds={false}
                             >
-                                {filteredRescues.map((rescue) => (
+                                {filteredRescues.filter(r => r.location && r.location.lat && r.location.lng).map((rescue) => (
                                     <Marker
                                         key={rescue.id}
                                         position={[rescue.location.lat, rescue.location.lng]}

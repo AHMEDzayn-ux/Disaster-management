@@ -1,23 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useDisasterStore } from '../store';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-
-// Fix leaflet default marker icon
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-});
+import '../utils/leafletIconFix';
 
 function DisasterReportDetail({ role: propRole }) {
     const { id } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
-    const { disasters, markResolvedByResponder } = useDisasterStore();
+    const { disasters, markResolvedByResponder, subscribeToDisasters, isInitialized } = useDisasterStore();
+
+    // Ensure data is loaded
+    useEffect(() => {
+        if (!isInitialized) {
+            subscribeToDisasters();
+        }
+    }, [isInitialized, subscribeToDisasters]);
 
     const role = propRole ||
         location.state?.role ||
@@ -27,7 +26,17 @@ function DisasterReportDetail({ role: propRole }) {
     const [resolvedBy, setResolvedBy] = useState('');
     const [responderNotes, setResponderNotes] = useState('');
 
-    const disaster = disasters.find(d => d.id === parseInt(id));
+    const disaster = disasters.find(d => d.id === id || d.id === parseInt(id));
+
+    // Show loading while data is being fetched
+    if (!isInitialized) {
+        return (
+            <div className="container mx-auto px-4 py-12 text-center">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary-600 border-t-transparent mb-4"></div>
+                <p className="text-gray-600">Loading...</p>
+            </div>
+        );
+    }
 
     if (!disaster) {
         return (

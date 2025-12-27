@@ -3,35 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useCampStore } from '../store';
 import { MapContainer, TileLayer, Marker, Popup, Rectangle, useMap } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
-import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-
-// Fix leaflet default marker icon
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-});
+import '../utils/leafletIconFix';
+import { greenIcon, greyIcon } from '../utils/leafletIconFix';
 
 // Custom marker icons for different statuses
-const activeIcon = new L.Icon({
-    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
-});
-
-const closedIcon = new L.Icon({
-    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-grey.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
-});
+const activeIcon = greenIcon;
+const closedIcon = greyIcon;
 
 // District boundaries
 const districtBounds = {
@@ -79,18 +57,27 @@ function MapController({ districtFilter }) {
 
 function CampsList({ role = 'responder' }) {
     const navigate = useNavigate();
-    const { camps, subscribeToCamps, unsubscribeFromCamps } = useCampStore();
+    const { camps, loading, isInitialized, subscribeToCamps, unsubscribeFromCamps } = useCampStore();
     const [statusFilter, setStatusFilter] = useState('all');
     const [typeFilter, setTypeFilter] = useState('all');
     const [districtFilter, setDistrictFilter] = useState('all');
     const [needsFilter, setNeedsFilter] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [viewMode, setViewMode] = useState('map'); // Default to map view as it's most important
+    const [isInitializing, setIsInitializing] = useState(!isInitialized);
 
     // Subscribe to real-time updates on mount
     useEffect(() => {
-        subscribeToCamps();
-        return () => unsubscribeFromCamps();
+        if (!isInitialized) {
+            const initialize = async () => {
+                await subscribeToCamps();
+                setIsInitializing(false);
+            };
+            initialize();
+        } else {
+            setIsInitializing(false);
+        }
+        // Don't unsubscribe on unmount to maintain cache
     }, []);
 
     const allDistricts = [
@@ -109,9 +96,9 @@ function CampsList({ role = 'responder' }) {
             (statusFilter === 'closed' && camp.status === 'Closed');
         const matchesType = typeFilter === 'all' || camp.campType === typeFilter;
         const matchesDistrict = districtFilter === 'all' || camp.district === districtFilter;
-        const matchesNeeds = needsFilter === 'all' || camp.needs.includes(needsFilter);
-        const matchesSearch = camp.campName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            camp.location.address.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesNeeds = needsFilter === 'all' || (camp.needs && camp.needs.includes(needsFilter));
+        const matchesSearch = (camp.campName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (camp.location?.address || '').toLowerCase().includes(searchTerm.toLowerCase());
         return matchesStatus && matchesType && matchesDistrict && matchesNeeds && matchesSearch;
     });
 
@@ -150,6 +137,20 @@ function CampsList({ role = 'responder' }) {
         };
         return icons[type] || '⛺';
     };
+
+    // Show loading state while initializing
+    if (isInitializing) {
+        return (
+            <div className="container mx-auto px-4 py-6">
+                <div className="flex items-center justify-center min-h-[400px]">
+                    <div className="text-center">
+                        <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary-600 border-t-transparent mb-4"></div>
+                        <p className="text-gray-600">Loading relief camps...</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="container mx-auto px-4 py-6 max-w-7xl">
@@ -344,7 +345,7 @@ function CampsList({ role = 'responder' }) {
                                 )}
 
                                 <MarkerClusterGroup chunkedLoading maxClusterRadius={30} disableClusteringAtZoom={9} removeOutsideVisibleBounds={false}>
-                                    {filteredCamps.map((camp) => {
+                                    {filteredCamps.filter(c => c.location && c.location.lat && c.location.lng).map((camp) => {
                                         const occupancyPercent = Math.round((camp.currentOccupancy / camp.capacity) * 100);
 
                                         return (

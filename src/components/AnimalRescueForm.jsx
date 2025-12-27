@@ -29,8 +29,6 @@ function AnimalRescueForm() {
         setPhotoPreview(testPhotoDataURL);
     };
 
-    const isDangerous = watch('isDangerous');
-
     const handlePhotoChange = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -73,11 +71,12 @@ function AnimalRescueForm() {
 
             // Show success message
             setSubmitSuccess(true);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
             reset();
             setPhotoPreview(null);
 
             // Hide success message after 3 seconds
-            setTimeout(() => setSubmitSuccess(false), 3000);
+            setTimeout(() => setSubmitSuccess(false), 5000);
         } catch (error) {
             console.error('Error submitting animal rescue:', error);
             alert(`Failed to submit report: ${error.message}`);
@@ -94,8 +93,12 @@ function AnimalRescueForm() {
                 </h2>
 
                 {submitSuccess && (
-                    <div className="bg-success-100 border border-success-500 text-success-700 px-4 py-3 rounded mb-4">
-                        ✅ Report submitted successfully! Rescue team will be notified.
+                    <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-success-600 text-white px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3 animate-bounce">
+                        <span className="text-2xl">✅</span>
+                        <div>
+                            <p className="font-bold text-lg">Report Submitted Successfully!</p>
+                            <p className="text-sm text-success-100">Your animal rescue request has been recorded.</p>
+                        </div>
                     </div>
                 )}
 

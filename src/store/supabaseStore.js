@@ -20,17 +20,24 @@ export const useMissingPersonStore = create((set, get) => ({
     loading: false,
     error: null,
     unsubscribe: null,
+    isInitialized: false,
 
     // Initialize real-time listener
     subscribeToMissingPersons: async () => {
+        // Skip if already initialized and subscribed
+        const { isInitialized, unsubscribe } = get();
+        if (isInitialized && unsubscribe) {
+            return;
+        }
+        
         set({ loading: true });
-        const unsubscribe = await subscribeToTable(
+        const unsubscribeFn = await subscribeToTable(
             TABLES.MISSING_PERSONS,
             (persons) => {
-                set({ missingPersons: persons, loading: false, error: null });
+                set({ missingPersons: persons, loading: false, error: null, isInitialized: true });
             }
         );
-        set({ unsubscribe });
+        set({ unsubscribe: unsubscribeFn });
     },
 
     // Unsubscribe from listener
@@ -108,16 +115,23 @@ export const useDisasterStore = create((set, get) => ({
     loading: false,
     error: null,
     unsubscribe: null,
+    isInitialized: false,
 
     subscribeToDisasters: async () => {
+        // Skip if already initialized and subscribed
+        const { isInitialized, unsubscribe } = get();
+        if (isInitialized && unsubscribe) {
+            return;
+        }
+        
         set({ loading: true });
-        const unsubscribe = await subscribeToTable(
+        const unsubscribeFn = await subscribeToTable(
             TABLES.DISASTERS,
             (disasters) => {
-                set({ disasters, loading: false, error: null });
+                set({ disasters, loading: false, error: null, isInitialized: true });
             }
         );
-        set({ unsubscribe });
+        set({ unsubscribe: unsubscribeFn });
     },
 
     unsubscribeFromDisasters: () => {
@@ -190,16 +204,23 @@ export const useAnimalRescueStore = create((set, get) => ({
     loading: false,
     error: null,
     unsubscribe: null,
+    isInitialized: false,
 
     subscribeToAnimalRescues: async () => {
+        // Skip if already initialized and subscribed
+        const { isInitialized, unsubscribe } = get();
+        if (isInitialized && unsubscribe) {
+            return;
+        }
+        
         set({ loading: true });
-        const unsubscribe = await subscribeToTable(
+        const unsubscribeFn = await subscribeToTable(
             TABLES.ANIMAL_RESCUES,
             (rescues) => {
-                set({ animalRescues: rescues, loading: false, error: null });
+                set({ animalRescues: rescues, loading: false, error: null, isInitialized: true });
             }
         );
-        set({ unsubscribe });
+        set({ unsubscribe: unsubscribeFn });
     },
 
     unsubscribeFromAnimalRescues: () => {
@@ -272,16 +293,23 @@ export const useCampStore = create((set, get) => ({
     loading: false,
     error: null,
     unsubscribe: null,
+    isInitialized: false,
 
     subscribeToCamps: async () => {
+        // Skip if already initialized and subscribed
+        const { isInitialized, unsubscribe } = get();
+        if (isInitialized && unsubscribe) {
+            return;
+        }
+        
         set({ loading: true });
-        const unsubscribe = await subscribeToTable(
+        const unsubscribeFn = await subscribeToTable(
             TABLES.CAMPS,
             (camps) => {
-                set({ camps, loading: false, error: null });
+                set({ camps, loading: false, error: null, isInitialized: true });
             }
         );
-        set({ unsubscribe });
+        set({ unsubscribe: unsubscribeFn });
     },
 
     unsubscribeFromCamps: () => {

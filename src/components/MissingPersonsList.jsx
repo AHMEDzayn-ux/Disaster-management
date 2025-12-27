@@ -3,35 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useMissingPersonStore } from '../store';
 import { MapContainer, TileLayer, Marker, Popup, Rectangle, useMap } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
-import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-
-// Fix leaflet default marker icon
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-});
+import '../utils/leafletIconFix';
+import { redIcon, greenIcon } from '../utils/leafletIconFix';
 
 // Custom marker icons for different statuses
-const activeIcon = new L.Icon({
-    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
-});
-
-const resolvedIcon = new L.Icon({
-    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
-});
+const activeIcon = redIcon;
+const resolvedIcon = greenIcon;
 
 // Approximate district boundaries for Sri Lanka (expanded to cover full districts)
 const districtBounds = {
@@ -81,16 +59,25 @@ function MapController({ districtFilter, allDistricts }) {
 
 function MissingPersonsList({ role = 'responder' }) {
     const navigate = useNavigate();
-    const { missingPersons, subscribeToMissingPersons, unsubscribeFromMissingPersons } = useMissingPersonStore();
+    const { missingPersons, loading, isInitialized, subscribeToMissingPersons, unsubscribeFromMissingPersons } = useMissingPersonStore();
     const [statusFilter, setStatusFilter] = useState('all');
     const [districtFilter, setDistrictFilter] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'map'
+    const [isInitializing, setIsInitializing] = useState(!isInitialized);
 
     // Subscribe to real-time updates on mount
     useEffect(() => {
-        subscribeToMissingPersons();
-        return () => unsubscribeFromMissingPersons();
+        if (!isInitialized) {
+            const initialize = async () => {
+                await subscribeToMissingPersons();
+                setIsInitializing(false);
+            };
+            initialize();
+        } else {
+            setIsInitializing(false);
+        }
+        // Don't unsubscribe on unmount to maintain cache
     }, []);
 
     // All 25 districts in Sri Lanka (matching EmergencyContacts)
@@ -119,11 +106,11 @@ function MissingPersonsList({ role = 'responder' }) {
 
         // Handle both snake_case (database) and camelCase (legacy)
         const location = person.last_seen_location || person.lastSeenLocation;
-        const personDistrict = location ? getDistrictFromAddress(location.address) : null;
+        const personDistrict = location ? getDistrictFromAddress(location.address || '') : null;
         const matchesDistrict = districtFilter === 'all' || personDistrict === districtFilter;
 
-        const matchesSearch = person.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (location && location.address.toLowerCase().includes(searchTerm.toLowerCase()));
+        const matchesSearch = (person.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (location && (location.address || '').toLowerCase().includes(searchTerm.toLowerCase()));
 
         return matchesStatus && matchesDistrict && matchesSearch;
     });
@@ -159,6 +146,20 @@ function MissingPersonsList({ role = 'responder' }) {
         if (diffHours > 0) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
         return 'Just now';
     };
+
+    // Show loading state while initializing
+    if (isInitializing) {
+        return (
+            <div className="container mx-auto px-4 py-6">
+                <div className="flex items-center justify-center min-h-[400px]">
+                    <div className="text-center">
+                        <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary-600 border-t-transparent mb-4"></div>
+                        <p className="text-gray-600">Loading missing persons data...</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="container mx-auto px-4 py-6">
@@ -374,7 +375,10 @@ function MissingPersonsList({ role = 'responder' }) {
                             zoomToBoundsOnClick={true}
                             removeOutsideVisibleBounds={false}
                         >
-                            {filteredPersons.map((person) => {
+                            {filteredPersons.filter(p => {
+                                const location = p.last_seen_location || p.lastSeenLocation;
+                                return location && location.lat && location.lng;
+                            }).map((person) => {
                                 const location = person.last_seen_location || person.lastSeenLocation;
                                 const lastSeenDate = person.last_seen_date || person.lastSeenDate;
                                 return (

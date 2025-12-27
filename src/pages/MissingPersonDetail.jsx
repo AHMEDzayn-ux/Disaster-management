@@ -1,23 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useMissingPersonStore } from '../store';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-
-// Fix leaflet default marker icon
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-});
+import '../utils/leafletIconFix';
 
 function MissingPersonDetail({ role: propRole }) {
     const { id } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
-    const { missingPersons, markFoundByResponder } = useMissingPersonStore();
+    const { missingPersons, subscribeToMissingPersons, isInitialized } = useMissingPersonStore();
+
+    // Ensure data is loaded
+    useEffect(() => {
+        if (!isInitialized) {
+            subscribeToMissingPersons();
+        }
+    }, [isInitialized, subscribeToMissingPersons]);
 
     // Determine role from prop, URL path, or location state
     const role = propRole ||
@@ -27,7 +26,25 @@ function MissingPersonDetail({ role: propRole }) {
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
     const [foundContact, setFoundContact] = useState('');
 
-    const person = missingPersons.find(p => p.id === parseInt(id));
+    const person = missingPersons.find(p => p.id === id || p.id === parseInt(id));
+
+    // Handle both snake_case (database) and camelCase (legacy) field names
+    const lastSeenLocation = person?.last_seen_location || person?.lastSeenLocation;
+    const lastSeenDate = person?.last_seen_date || person?.lastSeenDate;
+    const reporterName = person?.reporter_name || person?.reporterName;
+    const contactNumber = person?.contact_number || person?.contactNumber;
+    const reportedAt = person?.reported_at || person?.reportedAt || person?.created_at;
+    const foundByContact = person?.found_by_contact || person?.foundByContact;
+
+    // Show loading while data is being fetched
+    if (!isInitialized) {
+        return (
+            <div className="container mx-auto px-4 py-12 text-center">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary-600 border-t-transparent mb-4"></div>
+                <p className="text-gray-600">Loading...</p>
+            </div>
+        );
+    }
 
     if (!person) {
         return (
@@ -92,7 +109,7 @@ function MissingPersonDetail({ role: propRole }) {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-800">{person.name}</h1>
-                        <p className="text-gray-600">Report ID: #{person.id} • Reported {getTimeSince(person.reportedAt)}</p>
+                        <p className="text-gray-600">Report ID: #{person.id} • Reported {getTimeSince(reportedAt)}</p>
                     </div>
                     {getStatusBadge(person.status)}
                 </div>
@@ -144,27 +161,27 @@ function MissingPersonDetail({ role: propRole }) {
                         <div className="space-y-3">
                             <div>
                                 <p className="text-sm text-gray-500">Name</p>
-                                <p className="font-medium text-gray-800">{person.reporterName}</p>
+                                <p className="font-medium text-gray-800">{reporterName}</p>
                             </div>
                             <div>
                                 <p className="text-sm text-gray-500">Phone Number</p>
-                                <a href={`tel:${person.contactNumber}`} className="font-medium text-primary-600 hover:text-primary-700">
-                                    📞 {person.contactNumber}
+                                <a href={`tel:${contactNumber}`} className="font-medium text-primary-600 hover:text-primary-700">
+                                    📞 {contactNumber}
                                 </a>
                             </div>
                             <div>
                                 <p className="text-sm text-gray-500">Reported At</p>
-                                <p className="font-medium text-gray-800">{formatDate(person.reportedAt)}</p>
+                                <p className="font-medium text-gray-800">{formatDate(reportedAt)}</p>
                             </div>
                         </div>
 
-                        {person.foundByContact && (
+                        {foundByContact && (
                             <div className="mt-4 pt-4 border-t border-gray-200">
                                 <h4 className="text-sm font-semibold text-success-700 mb-2">✓ Found - Alternate Contact</h4>
                                 <div>
                                     <p className="text-sm text-gray-500">Contact Person</p>
-                                    <a href={`tel:${person.foundByContact}`} className="font-medium text-success-600 hover:text-success-700">
-                                        📞 {person.foundByContact}
+                                    <a href={`tel:${foundByContact}`} className="font-medium text-success-600 hover:text-success-700">
+                                        📞 {foundByContact}
                                     </a>
                                     <p className="text-xs text-gray-500 mt-1">Contact this number for more information</p>
                                 </div>
@@ -181,34 +198,36 @@ function MissingPersonDetail({ role: propRole }) {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                             <div>
                                 <p className="text-sm text-gray-500">Location</p>
-                                <p className="font-medium text-gray-800">📍 {person.lastSeenLocation.address}</p>
+                                <p className="font-medium text-gray-800">📍 {lastSeenLocation?.address || 'Unknown'}</p>
                             </div>
                             <div>
                                 <p className="text-sm text-gray-500">Date & Time</p>
-                                <p className="font-medium text-gray-800">🕒 {formatDate(person.lastSeenDate)}</p>
-                                <p className="text-sm text-gray-600 mt-1">{getTimeSince(person.lastSeenDate)}</p>
+                                <p className="font-medium text-gray-800">🕒 {formatDate(lastSeenDate)}</p>
+                                <p className="text-sm text-gray-600 mt-1">{getTimeSince(lastSeenDate)}</p>
                             </div>
                         </div>
 
                         {/* Map */}
-                        <div className="h-64 rounded-lg overflow-hidden border-2 border-gray-200">
-                            <MapContainer
-                                center={[person.lastSeenLocation.lat, person.lastSeenLocation.lng]}
-                                zoom={15}
-                                style={{ height: '100%', width: '100%' }}
-                            >
-                                <TileLayer
-                                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                                />
-                                <Marker position={[person.lastSeenLocation.lat, person.lastSeenLocation.lng]}>
-                                    <Popup>
-                                        <strong>Last Seen Here</strong><br />
-                                        {person.lastSeenLocation.address}
-                                    </Popup>
-                                </Marker>
-                            </MapContainer>
-                        </div>
+                        {lastSeenLocation?.lat && lastSeenLocation?.lng && (
+                            <div className="h-64 rounded-lg overflow-hidden border-2 border-gray-200">
+                                <MapContainer
+                                    center={[lastSeenLocation.lat, lastSeenLocation.lng]}
+                                    zoom={15}
+                                    style={{ height: '100%', width: '100%' }}
+                                >
+                                    <TileLayer
+                                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                                    />
+                                    <Marker position={[lastSeenLocation.lat, lastSeenLocation.lng]}>
+                                        <Popup>
+                                            <strong>Last Seen Here</strong><br />
+                                            {lastSeenLocation.address}
+                                        </Popup>
+                                    </Marker>
+                                </MapContainer>
+                            </div>
+                        )}
                     </div>
 
                     {/* Additional Information */}

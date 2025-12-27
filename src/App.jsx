@@ -20,6 +20,7 @@ const CampDetail = lazy(() => import('./pages/CampDetail'));
 const CampManagement = lazy(() => import('./pages/CampManagement'));
 const Volunteers = lazy(() => import('./pages/Volunteers'));
 const Donations = lazy(() => import('./pages/Donations'));
+const BulkTestData = lazy(() => import('./pages/BulkTestData'));
 
 // Loading fallback component
 function PageLoader() {
@@ -63,6 +64,9 @@ function App() {
           <Route path="/camps/:id" element={<><Navbar userType="responder" /><CampDetail /></>} />
           <Route path="/volunteers" element={<><Navbar userType="responder" /><Volunteers /></>} />
           <Route path="/donations" element={<><Navbar userType="responder" /><Donations /></>} />
+
+          {/* Bulk Test Data Generator */}
+          <Route path="/bulk-test-data" element={<BulkTestData />} />
         </Routes>
       </Suspense>
     </div>

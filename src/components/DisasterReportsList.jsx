@@ -3,35 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useDisasterStore } from '../store';
 import { MapContainer, TileLayer, Marker, Popup, Rectangle, useMap } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
-import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-
-// Fix leaflet default marker icon
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-});
+import '../utils/leafletIconFix';
+import { redIcon, greenIcon } from '../utils/leafletIconFix';
 
 // Custom marker icons for different statuses
-const activeIcon = new L.Icon({
-    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
-});
-
-const resolvedIcon = new L.Icon({
-    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
-});
+const activeIcon = redIcon;
+const resolvedIcon = greenIcon;
 
 // District boundaries
 const districtBounds = {
@@ -79,18 +57,27 @@ function MapController({ districtFilter }) {
 
 function DisasterReportsList({ role = 'responder' }) {
     const navigate = useNavigate();
-    const { disasters, subscribeToDisasters, unsubscribeFromDisasters } = useDisasterStore();
+    const { disasters, loading, isInitialized, subscribeToDisasters, unsubscribeFromDisasters } = useDisasterStore();
     const [statusFilter, setStatusFilter] = useState('all');
     const [districtFilter, setDistrictFilter] = useState('all');
     const [typeFilter, setTypeFilter] = useState('all');
     const [severityFilter, setSeverityFilter] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [viewMode, setViewMode] = useState('cards');
+    const [isInitializing, setIsInitializing] = useState(!isInitialized);
 
     // Subscribe to real-time updates on mount
     useEffect(() => {
-        subscribeToDisasters();
-        return () => unsubscribeFromDisasters();
+        if (!isInitialized) {
+            const initialize = async () => {
+                await subscribeToDisasters();
+                setIsInitializing(false);
+            };
+            initialize();
+        } else {
+            setIsInitializing(false);
+        }
+        // Don't unsubscribe on unmount to maintain cache
     }, []);
 
     const allDistricts = [
@@ -175,6 +162,20 @@ function DisasterReportsList({ role = 'responder' }) {
         const route = role === 'responder' ? `/disasters-list/${disaster.id}` : `/disasters/${disaster.id}`;
         navigate(route);
     };
+
+    // Show loading state while initializing
+    if (isInitializing) {
+        return (
+            <div className="container mx-auto px-4 py-6">
+                <div className="flex items-center justify-center min-h-[400px]">
+                    <div className="text-center">
+                        <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary-600 border-t-transparent mb-4"></div>
+                        <p className="text-gray-600">Loading disaster reports...</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="container mx-auto px-4 py-6 max-w-7xl">
@@ -371,7 +372,7 @@ function DisasterReportsList({ role = 'responder' }) {
                             )}
 
                             <MarkerClusterGroup chunkedLoading maxClusterRadius={30} disableClusteringAtZoom={9} removeOutsideVisibleBounds={false}>
-                                {filteredDisasters.map((disaster) => {
+                                {filteredDisasters.filter(d => d.location && d.location.lat && d.location.lng).map((disaster) => {
                                     const disasterType = disaster.disaster_type || disaster.disasterType || 'unknown';
                                     const reporterName = disaster.reporter_name || disaster.reporterName;
                                     const contactNumber = disaster.contact_number || disaster.contactNumber;
