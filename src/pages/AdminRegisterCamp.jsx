@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../config/supabase';
+import { secureRegisterCamp, secureApproveCampRequest } from '../services/adminService';
 import LocationPicker from '../components/LocationPicker';
 
 // Sri Lanka districts
@@ -75,49 +75,48 @@ function AdminRegisterCamp() {
         setSubmitting(true);
 
         try {
-            // Insert camp into database
-            const { error: campError } = await supabase
-                .from('camps')
-                .insert({
-                    name: formData.name,
-                    type: formData.type,
-                    location: {
-                        address: formData.address,
-                        lat: campLocation.lat,
-                        lng: campLocation.lng,
-                        district: formData.district
-                    },
-                    capacity: parseInt(formData.capacity),
-                    current_occupancy: 0,
-                    status: 'Active',
-                    contact_person: formData.contact_name,
-                    contact_number: formData.contact_phone,
-                    facilities: formData.facilities
-                });
+            // Prepare camp data
+            const campData = {
+                camp_name: formData.name,
+                district: formData.district,
+                address: formData.address,
+                latitude: campLocation.lat,
+                longitude: campLocation.lng,
+                total_capacity: parseInt(formData.capacity),
+                current_occupancy: 0,
+                contact_number: formData.contact_phone,
+                facilities: formData.facilities,
+                status: 'Active',
+                managed_by: formData.contact_name
+            };
 
-            if (campError) throw campError;
-
-            // If this came from a request approval, mark the request as approved
             if (fromRequest && requestId) {
-                const { error: updateError } = await supabase
-                    .from('camp_requests')
-                    .update({
-                        status: 'approved',
-                        reviewed_at: new Date().toISOString(),
-                        reviewed_by: user.id
-                    })
-                    .eq('id', requestId);
+                // Approve request and create camp via edge function
+                const result = await secureApproveCampRequest(requestId, campData);
 
-                if (updateError) throw updateError;
-                alert('Camp request approved and registered successfully! The camp is now visible to the public.');
+                if (result.success) {
+                    alert('✅ Camp request approved and registered successfully! The camp is now visible to the public.');
+                    navigate('/admin/dashboard');
+                } else {
+                    throw new Error(result.error);
+                }
             } else {
-                alert('Camp registered successfully! It is now visible to the public.');
-            }
+                // Direct camp registration via edge function
+                const result = await secureRegisterCamp(
+                    campData,
+                    `Direct registration by admin: ${formData.notes || 'Official camp'}`
+                );
 
-            navigate('/admin/dashboard');
+                if (result.success) {
+                    alert('✅ Camp registered successfully! It is now visible to the public.');
+                    navigate('/admin/dashboard');
+                } else {
+                    throw new Error(result.error);
+                }
+            }
         } catch (error) {
             console.error('Error registering camp:', error);
-            alert('Failed to register camp: ' + error.message);
+            alert('❌ Failed to register camp: ' + error.message);
         } finally {
             setSubmitting(false);
         }

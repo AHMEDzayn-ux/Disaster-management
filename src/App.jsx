@@ -30,6 +30,8 @@ const AdminLogin = lazy(() => import('./pages/AdminLogin'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AdminReviewRequests = lazy(() => import('./pages/AdminReviewRequests'));
 const AdminRegisterCamp = lazy(() => import('./pages/AdminRegisterCamp'));
+const AdminManageCamps = lazy(() => import('./pages/AdminManageCamps'));
+const AdminRecords = lazy(() => import('./pages/AdminRecords'));
 const CampRequestForm = lazy(() => import('./components/CampRequestForm'));
 
 // Loading fallback component
@@ -84,6 +86,8 @@ function App() {
             <Route path="/admin/dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
             <Route path="/admin/review-requests" element={<ProtectedRoute><AdminReviewRequests /></ProtectedRoute>} />
             <Route path="/admin/register-camp" element={<ProtectedRoute><AdminRegisterCamp /></ProtectedRoute>} />
+            <Route path="/admin/manage-camps" element={<ProtectedRoute><AdminManageCamps /></ProtectedRoute>} />
+            <Route path="/admin/records" element={<ProtectedRoute><AdminRecords /></ProtectedRoute>} />
 
             {/* Bulk Test Data Generator */}
             <Route path="/bulk-test-data" element={<BulkTestData />} />

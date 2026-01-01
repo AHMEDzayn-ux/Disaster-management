@@ -243,3 +243,14 @@ END $$;
 --   - Authenticated: ALL (including DELETE)
 --
 -- =====================================================
+-- 
+-- IMPORTANT: For secure admin-only deletion, also run:
+--   supabase/migrations/001_admin_audit_tables.sql
+-- 
+-- This creates:
+--   - admin_users table (whitelist of authorized admins)
+--   - audit_logs table (immutable deletion records)
+--   - Edge Function handles deletion with service role key
+--
+-- See SECURE_DELETE_SETUP.md for full instructions.
+-- =====================================================

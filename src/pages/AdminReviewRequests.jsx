@@ -2,6 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
+import {
+    secureDeleteRecord,
+    secureRejectCampRequest,
+    checkIsAdmin,
+    DELETABLE_TABLES
+} from '../services/adminService';
+import DeleteConfirmModal from '../components/shared/DeleteConfirmModal';
 
 function AdminReviewRequests() {
     const navigate = useNavigate();
@@ -13,12 +20,24 @@ function AdminReviewRequests() {
     const [rejectionReason, setRejectionReason] = useState('');
     const [processing, setProcessing] = useState(false);
 
+    // Delete state
+    const [deleteModal, setDeleteModal] = useState({ isOpen: false, request: null });
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [adminStatus, setAdminStatus] = useState({ isAdmin: false, role: null });
+
     // Redirect if not authenticated
     useEffect(() => {
         if (!authLoading && !user) {
             navigate('/admin/login');
         }
     }, [user, authLoading, navigate]);
+
+    // Check admin status
+    useEffect(() => {
+        if (user) {
+            checkIsAdmin().then(setAdminStatus);
+        }
+    }, [user]);
 
     // Fetch camp requests
     useEffect(() => {
@@ -82,28 +101,54 @@ function AdminReviewRequests() {
 
         setProcessing(true);
         try {
-            const { error } = await supabase
-                .from('camp_requests')
-                .update({
-                    status: 'rejected',
-                    reviewed_at: new Date().toISOString(),
-                    reviewed_by: user.id,
-                    rejection_reason: rejectionReason
-                })
-                .eq('id', request.id);
+            // Use secure edge function for rejection
+            const result = await secureRejectCampRequest(request.id, rejectionReason);
 
-            if (error) throw error;
-
-            alert('Camp request rejected.');
-            fetchRequests();
-            setSelectedRequest(null);
-            setRejectionReason('');
+            if (result.success) {
+                alert('✅ Camp request rejected successfully.');
+                fetchRequests();
+                setSelectedRequest(null);
+                setRejectionReason('');
+            } else {
+                alert(`❌ Error: ${result.error}`);
+            }
         } catch (error) {
             console.error('Error rejecting request:', error);
             alert('Failed to reject request: ' + error.message);
         } finally {
             setProcessing(false);
         }
+    };
+
+    // Secure delete handler
+    const handleDeleteRequest = async (reason) => {
+        if (!deleteModal.request) return;
+
+        setIsDeleting(true);
+        try {
+            const result = await secureDeleteRecord(
+                DELETABLE_TABLES.CAMP_REQUESTS,
+                deleteModal.request.id,
+                reason
+            );
+
+            if (result.success) {
+                alert(`✅ ${result.message}`);
+                fetchRequests();
+                setDeleteModal({ isOpen: false, request: null });
+            } else {
+                alert(`❌ Error: ${result.error}`);
+            }
+        } catch (error) {
+            console.error('Delete error:', error);
+            alert(`❌ Failed to delete: ${error.message}`);
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    const openDeleteModal = (request) => {
+        setDeleteModal({ isOpen: true, request });
     };
 
     const formatDate = (dateString) => {
@@ -229,6 +274,18 @@ function AdminReviewRequests() {
                                             </button>
                                         </div>
                                     )}
+
+                                    {/* Delete button for rejected/pending requests */}
+                                    {(request.status === 'rejected' || request.status === 'pending') && adminStatus.isAdmin && (
+                                        <button
+                                            onClick={() => openDeleteModal(request)}
+                                            disabled={isDeleting}
+                                            className="px-3 py-2 bg-gray-700 hover:bg-gray-800 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-1"
+                                            title="Permanently delete this request"
+                                        >
+                                            🗑️ Delete
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         ))}
@@ -270,6 +327,18 @@ function AdminReviewRequests() {
                         </div>
                     </div>
                 )}
+
+                {/* Delete Confirmation Modal */}
+                <DeleteConfirmModal
+                    isOpen={deleteModal.isOpen}
+                    onClose={() => setDeleteModal({ isOpen: false, request: null })}
+                    onConfirm={handleDeleteRequest}
+                    itemName={deleteModal.request?.camp_name || ''}
+                    itemType="Camp Request"
+                    requireReason={true}
+                    isProcessing={isDeleting}
+                    warningMessage="This will permanently remove this camp request from the database. The action will be recorded in the audit log."
+                />
             </main>
         </div>
     );

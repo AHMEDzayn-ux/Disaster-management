@@ -63,7 +63,7 @@ function AdminDashboard() {
                 </div>
 
                 {/* Action Cards */}
-                <div className="grid md:grid-cols-2 gap-6 max-w-4xl">
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl">
                     {/* Review Camp Requests */}
                     <Link to="/admin/review-requests" className="block">
                         <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow border-l-4 border-warning-500">
@@ -98,6 +98,46 @@ function AdminDashboard() {
                                     </p>
                                     <span className="text-success-600 font-semibold">
                                         Register Camp →
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </Link>
+
+                    {/* Manage Camps */}
+                    <Link to="/admin/manage-camps" className="block">
+                        <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow border-l-4 border-purple-500">
+                            <div className="flex items-start gap-4">
+                                <div className="text-4xl">🔧</div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-gray-800 mb-2">
+                                        Manage Camps
+                                    </h3>
+                                    <p className="text-gray-600 mb-4">
+                                        View and manage existing relief camps
+                                    </p>
+                                    <span className="text-purple-600 font-semibold">
+                                        Manage Camps →
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </Link>
+
+                    {/* All Records Management */}
+                    <Link to="/admin/records" className="block">
+                        <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow border-l-4 border-red-500">
+                            <div className="flex items-start gap-4">
+                                <div className="text-4xl">📊</div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-gray-800 mb-2">
+                                        All Records
+                                    </h3>
+                                    <p className="text-gray-600 mb-4">
+                                        View and delete ANY records (camps, reports, persons, etc.)
+                                    </p>
+                                    <span className="text-red-600 font-semibold">
+                                        Manage All Records →
                                     </span>
                                 </div>
                             </div>
