@@ -31,8 +31,8 @@ function Navbar({ userType = 'reporter' }) {
 
     return (
         <nav className={`${navColor} shadow-lg`}>
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between items-center h-16">
+            <div className="w-full px-4 sm:px-6 lg:px-8">
+                <div className="flex items-center h-16">
                     {/* Logo */}
                     <div className="flex-shrink-0">
                         <Link to="/" className="text-white text-lg lg:text-xl font-bold flex items-center gap-2 hover:opacity-90 transition-opacity">
@@ -46,7 +46,7 @@ function Navbar({ userType = 'reporter' }) {
                     </div>
 
                     {/* Desktop menu and switcher - Right aligned */}
-                    <div className="hidden lg:flex items-center gap-1">
+                    <div className="hidden lg:flex items-center gap-1 ml-auto">
                         {navLinks.map((link) => (
                             <Link
                                 key={link.path}
