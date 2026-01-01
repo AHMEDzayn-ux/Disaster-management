@@ -4,6 +4,11 @@ import { getCachedData, setCachedData, invalidateCache } from '../utils/cacheMan
 /**
  * Supabase service layer
  * Provides CRUD operations and real-time subscriptions for all collections
+ * 
+ * SECURITY NOTES:
+ * - Uses anon key only (no service role key in frontend)
+ * - RLS policies enforce access control server-side
+ * - All operations go through Supabase Row Level Security
  */
 
 // Table names
@@ -12,7 +17,20 @@ export const TABLES = {
     DISASTERS: 'disasters',
     ANIMAL_RESCUES: 'animal_rescues',
     CAMPS: 'camps',
+    CAMP_REQUESTS: 'camp_requests',
     DONATIONS: 'donations'
+};
+
+// Debounce utility for realtime updates
+const debounceMap = new Map();
+const debounce = (key, callback, delay = 300) => {
+    if (debounceMap.has(key)) {
+        clearTimeout(debounceMap.get(key));
+    }
+    debounceMap.set(key, setTimeout(() => {
+        callback();
+        debounceMap.delete(key);
+    }, delay));
 };
 
 // Create a new document
@@ -118,10 +136,11 @@ export const deleteDocument = async (table, id) => {
     }
 };
 
-// Subscribe to real-time changes - progressive loading with caching
+// Subscribe to real-time changes - progressive loading with caching and debouncing
 export const subscribeToTable = async (table, callback) => {
     const INITIAL_CHUNK = 30; // Show first 30 immediately
     const CHUNK_SIZE = 50; // Load remaining in 50-record batches
+    const DEBOUNCE_DELAY = 500; // Debounce realtime updates by 500ms
 
     // Check cache first
     const cachedResult = getCachedData(table);
@@ -135,110 +154,160 @@ export const subscribeToTable = async (table, callback) => {
             .on('postgres_changes', 
                 { event: '*', schema: 'public', table }, 
                 async (payload) => {
-                    // Invalidate cache on any change
-                    invalidateCache(table);
-                    
-                    // Refetch all data
-                    const { data: updatedData, count } = await supabase
-                        .from(table)
-                        .select('*', { count: 'exact' })
-                        .order('created_at', { ascending: false });
-                    
-                    const allData = updatedData || [];
-                    callback(allData, false); // false = replace mode
-                    
-                    // Update cache
-                    setCachedData(table, allData, count);
+                    // Debounce updates to prevent UI thrashing
+                    debounce(`realtime_${table}`, async () => {
+                        // Invalidate cache on any change
+                        invalidateCache(table);
+                        
+                        // Refetch all data
+                        try {
+                            const { data: updatedData, count, error } = await supabase
+                                .from(table)
+                                .select('*', { count: 'exact' })
+                                .order('created_at', { ascending: false });
+                            
+                            if (error) {
+                                console.error(`Error refetching ${table}:`, error);
+                                return;
+                            }
+                            
+                            const allData = updatedData || [];
+                            callback(allData, false); // false = replace mode
+                            
+                            // Update cache
+                            setCachedData(table, allData, count);
+                        } catch (err) {
+                            console.error(`Realtime update error for ${table}:`, err);
+                        }
+                    }, DEBOUNCE_DELAY);
                 }
             )
             .subscribe();
 
         return () => {
             subscription.unsubscribe();
+            // Clear any pending debounced updates
+            if (debounceMap.has(`realtime_${table}`)) {
+                clearTimeout(debounceMap.get(`realtime_${table}`));
+                debounceMap.delete(`realtime_${table}`);
+            }
         };
     }
 
     // No cache - fetch and show first chunk INSTANTLY
-    const { data: initialData, error, count } = await supabase
-        .from(table)
-        .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .range(0, INITIAL_CHUNK - 1);
-    
-    if (error) {
-        console.error(`Error fetching ${table}:`, error);
+    try {
+        const { data: initialData, error, count } = await supabase
+            .from(table)
+            .select('*', { count: 'exact' })
+            .order('created_at', { ascending: false })
+            .range(0, INITIAL_CHUNK - 1);
+        
+        if (error) {
+            console.error(`Error fetching ${table}:`, error);
+            callback([]);
+            return () => {};
+        }
+
+        // Show first chunk immediately - user sees data right away!
+        callback(initialData || []);
+
+        // Array to collect all data for caching
+        let allData = [...(initialData || [])];
+
+        // Load remaining data in background (if any)
+        const totalRecords = count || 0;
+        if (totalRecords > INITIAL_CHUNK) {
+            // Load remaining chunks without blocking
+            let offset = INITIAL_CHUNK;
+            
+            const loadRemainingChunks = async () => {
+                while (offset < totalRecords) {
+                    try {
+                        const { data: nextChunk, error: chunkError } = await supabase
+                            .from(table)
+                            .select('*')
+                            .order('created_at', { ascending: false })
+                            .range(offset, offset + CHUNK_SIZE - 1);
+                        
+                        if (chunkError) {
+                            console.error(`Error loading chunk for ${table}:`, chunkError);
+                            break;
+                        }
+                        
+                        if (nextChunk && nextChunk.length > 0) {
+                            // Append new data as it arrives (no delay!)
+                            callback(nextChunk, true); // true = append mode
+                            allData = [...allData, ...nextChunk];
+                            offset += nextChunk.length;
+                        } else {
+                            break;
+                        }
+                    } catch (err) {
+                        console.error(`Chunk load error for ${table}:`, err);
+                        break;
+                    }
+                }
+                
+                // Cache all data after loading completes
+                setCachedData(table, allData, totalRecords);
+            };
+            
+            // Load in background without blocking UI
+            loadRemainingChunks();
+        } else {
+            // Cache the initial data if it's all we have
+            setCachedData(table, allData, totalRecords);
+        }
+
+        // Subscribe to real-time updates with debouncing
+        const subscription = supabase
+            .channel(`${table}_changes`)
+            .on('postgres_changes', 
+                { event: '*', schema: 'public', table }, 
+                async (payload) => {
+                    // Debounce updates to prevent UI thrashing
+                    debounce(`realtime_${table}`, async () => {
+                        // Invalidate cache on any change
+                        invalidateCache(table);
+                        
+                        // Refetch all data on changes to ensure consistency
+                        try {
+                            const { data: updatedData, count, error: updateError } = await supabase
+                                .from(table)
+                                .select('*', { count: 'exact' })
+                                .order('created_at', { ascending: false });
+                            
+                            if (updateError) {
+                                console.error(`Error updating ${table}:`, updateError);
+                                return;
+                            }
+                            
+                            const freshData = updatedData || [];
+                            callback(freshData, false); // false = replace mode
+                            
+                            // Update cache with fresh data
+                            setCachedData(table, freshData, count);
+                        } catch (err) {
+                            console.error(`Realtime refresh error for ${table}:`, err);
+                        }
+                    }, DEBOUNCE_DELAY);
+                }
+            )
+            .subscribe();
+
+        return () => {
+            subscription.unsubscribe();
+            // Clear any pending debounced updates
+            if (debounceMap.has(`realtime_${table}`)) {
+                clearTimeout(debounceMap.get(`realtime_${table}`));
+                debounceMap.delete(`realtime_${table}`);
+            }
+        };
+    } catch (err) {
+        console.error(`Fatal error subscribing to ${table}:`, err);
         callback([]);
         return () => {};
     }
-
-    // Show first chunk immediately - user sees data right away!
-    callback(initialData || []);
-
-    // Array to collect all data for caching
-    let allData = [...(initialData || [])];
-
-    // Load remaining data in background (if any)
-    const totalRecords = count || 0;
-    if (totalRecords > INITIAL_CHUNK) {
-        // Load remaining chunks without blocking
-        let offset = INITIAL_CHUNK;
-        
-        const loadRemainingChunks = async () => {
-            while (offset < totalRecords) {
-                const { data: nextChunk } = await supabase
-                    .from(table)
-                    .select('*')
-                    .order('created_at', { ascending: false })
-                    .range(offset, offset + CHUNK_SIZE - 1);
-                
-                if (nextChunk && nextChunk.length > 0) {
-                    // Append new data as it arrives (no delay!)
-                    callback(nextChunk, true); // true = append mode
-                    allData = [...allData, ...nextChunk];
-                    offset += nextChunk.length;
-                } else {
-                    break;
-                }
-            }
-            
-            // Cache all data after loading completes
-            setCachedData(table, allData, totalRecords);
-        };
-        
-        // Load in background without blocking UI
-        loadRemainingChunks();
-    } else {
-        // Cache the initial data if it's all we have
-        setCachedData(table, allData, totalRecords);
-    }
-
-    // Subscribe to real-time updates
-    const subscription = supabase
-        .channel(`${table}_changes`)
-        .on('postgres_changes', 
-            { event: '*', schema: 'public', table }, 
-            async (payload) => {
-                // Invalidate cache on any change
-                invalidateCache(table);
-                
-                // Refetch all data on changes to ensure consistency
-                const { data: updatedData, count } = await supabase
-                    .from(table)
-                    .select('*', { count: 'exact' })
-                    .order('created_at', { ascending: false });
-                
-                const freshData = updatedData || [];
-                callback(freshData, false); // false = replace mode
-                
-                // Update cache with fresh data
-                setCachedData(table, freshData, count);
-            }
-        )
-        .subscribe();
-
-    return () => {
-        subscription.unsubscribe();
-    };
 };
 
 // Upload photo to Supabase Storage

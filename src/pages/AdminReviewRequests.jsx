@@ -50,56 +50,28 @@ function AdminReviewRequests() {
         }
     };
 
-    const handleApprove = async (request) => {
-        if (!confirm('Are you sure you want to approve this camp request? This will create a new official camp.')) {
-            return;
-        }
-
-        setProcessing(true);
-        try {
-            // Create new camp from request
-            const { error: campError } = await supabase
-                .from('camps')
-                .insert({
-                    name: request.camp_name,
-                    type: 'Relief Camp',
-                    location: {
-                        address: request.address,
-                        lat: request.latitude,
-                        lng: request.longitude,
-                        district: request.district
-                    },
-                    capacity: request.estimated_capacity,
-                    current_occupancy: 0,
-                    status: 'Active',
-                    contact_person: request.requester_name,
-                    contact_number: request.requester_phone,
-                    facilities: request.facilities_needed || []
-                });
-
-            if (campError) throw campError;
-
-            // Update request status
-            const { error: updateError } = await supabase
-                .from('camp_requests')
-                .update({
-                    status: 'approved',
-                    reviewed_at: new Date().toISOString(),
-                    reviewed_by: user.id
-                })
-                .eq('id', request.id);
-
-            if (updateError) throw updateError;
-
-            alert('Camp request approved! The camp is now visible to the public.');
-            fetchRequests();
-            setSelectedRequest(null);
-        } catch (error) {
-            console.error('Error approving request:', error);
-            alert('Failed to approve request: ' + error.message);
-        } finally {
-            setProcessing(false);
-        }
+    const handleApprove = (request) => {
+        // Navigate to registration form with prefilled data from the request
+        navigate('/admin/register-camp', {
+            state: {
+                fromRequest: true,
+                requestId: request.id,
+                prefillData: {
+                    camp_name: request.camp_name,
+                    district: request.district,
+                    address: request.address,
+                    latitude: request.latitude,
+                    longitude: request.longitude,
+                    estimated_capacity: request.estimated_capacity,
+                    facilities_needed: request.facilities_needed,
+                    requester_name: request.requester_name,
+                    requester_phone: request.requester_phone,
+                    requester_email: request.requester_email,
+                    reason: request.reason,
+                    additional_notes: request.additional_notes
+                }
+            }
+        });
     };
 
     const handleReject = async (request) => {

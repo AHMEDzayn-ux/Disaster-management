@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
+import LocationPicker from '../components/LocationPicker';
 
 // Sri Lanka districts
 const districts = [
@@ -19,21 +20,33 @@ const facilityOptions = [
 
 function AdminRegisterCamp() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { user, loading: authLoading } = useAuth();
     const [submitting, setSubmitting] = useState(false);
+
+    // Get request data if coming from review page
+    const requestData = location.state;
+    const fromRequest = requestData?.fromRequest || false;
+    const requestId = requestData?.requestId;
+    const prefillData = requestData?.prefillData || {};
+
     const [formData, setFormData] = useState({
-        name: '',
-        district: '',
-        address: '',
-        latitude: '',
-        longitude: '',
-        capacity: '',
-        contact_name: '',
-        contact_phone: '',
-        contact_email: '',
-        facilities: [],
+        name: prefillData.camp_name || '',
+        district: prefillData.district || '',
+        address: prefillData.address || '',
+        capacity: prefillData.estimated_capacity || '',
+        contact_name: prefillData.requester_name || '',
+        contact_phone: prefillData.requester_phone || '',
+        contact_email: prefillData.requester_email || '',
+        facilities: prefillData.facilities_needed || [],
         type: 'temporary-shelter',
-        notes: ''
+        notes: prefillData.additional_notes || ''
+    });
+
+    // Location state for LocationPicker
+    const [campLocation, setCampLocation] = useState({
+        lat: prefillData.latitude || null,
+        lng: prefillData.longitude || null
     });
 
     // Redirect if not authenticated
@@ -62,35 +75,45 @@ function AdminRegisterCamp() {
         setSubmitting(true);
 
         try {
-            const { error } = await supabase
+            // Insert camp into database
+            const { error: campError } = await supabase
                 .from('camps')
                 .insert({
                     name: formData.name,
-                    district: formData.district,
+                    type: formData.type,
                     location: {
                         address: formData.address,
-                        lat: parseFloat(formData.latitude) || null,
-                        lng: parseFloat(formData.longitude) || null
+                        lat: campLocation.lat,
+                        lng: campLocation.lng,
+                        district: formData.district
                     },
                     capacity: parseInt(formData.capacity),
                     current_occupancy: 0,
-                    status: 'active',
-                    type: formData.type,
-                    contact_name: formData.contact_name,
-                    contact_phone: formData.contact_phone,
-                    contact_email: formData.contact_email || null,
-                    facilities: formData.facilities,
-                    supplies: {
-                        food: 'adequate',
-                        water: 'adequate',
-                        medicine: 'adequate'
-                    },
-                    notes: formData.notes || null
+                    status: 'Active',
+                    contact_person: formData.contact_name,
+                    contact_number: formData.contact_phone,
+                    facilities: formData.facilities
                 });
 
-            if (error) throw error;
+            if (campError) throw campError;
 
-            alert('Camp registered successfully! It is now visible to the public.');
+            // If this came from a request approval, mark the request as approved
+            if (fromRequest && requestId) {
+                const { error: updateError } = await supabase
+                    .from('camp_requests')
+                    .update({
+                        status: 'approved',
+                        reviewed_at: new Date().toISOString(),
+                        reviewed_by: user.id
+                    })
+                    .eq('id', requestId);
+
+                if (updateError) throw updateError;
+                alert('Camp request approved and registered successfully! The camp is now visible to the public.');
+            } else {
+                alert('Camp registered successfully! It is now visible to the public.');
+            }
+
             navigate('/admin/dashboard');
         } catch (error) {
             console.error('Error registering camp:', error);
@@ -131,8 +154,16 @@ function AdminRegisterCamp() {
                         <div className="mb-6">
                             <h2 className="text-xl font-bold text-gray-800">Camp Registration Form</h2>
                             <p className="text-gray-600 text-sm mt-1">
-                                Register an official relief camp. This will be immediately visible to the public.
+                                {fromRequest
+                                    ? '📝 This form has been auto-filled from a public camp request. Please review all details, complete missing fields, and confirm registration.'
+                                    : 'Register an official relief camp. This will be immediately visible to the public.'}
                             </p>
+                            {fromRequest && prefillData.reason && (
+                                <div className="mt-3 p-3 bg-blue-50 border-l-4 border-blue-500 rounded">
+                                    <p className="text-sm font-medium text-blue-900">Requester's Reason:</p>
+                                    <p className="text-sm text-blue-800 mt-1">{prefillData.reason}</p>
+                                </div>
+                            )}
                         </div>
 
                         <form onSubmit={handleSubmit} className="space-y-6">
@@ -205,34 +236,19 @@ function AdminRegisterCamp() {
                                 />
                             </div>
 
-                            {/* Coordinates */}
-                            <div className="grid md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Latitude
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="latitude"
-                                        value={formData.latitude}
-                                        onChange={handleChange}
-                                        className="input-field"
-                                        placeholder="e.g., 6.9271"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Longitude
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="longitude"
-                                        value={formData.longitude}
-                                        onChange={handleChange}
-                                        className="input-field"
-                                        placeholder="e.g., 79.8612"
-                                    />
-                                </div>
+                            {/* Location Picker - Map Based Coordinate Selection */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Exact Location Coordinates * (Click on map to select)
+                                </label>
+                                <LocationPicker
+                                    value={campLocation}
+                                    onChange={setCampLocation}
+                                    required={true}
+                                />
+                                <p className="text-sm text-gray-600 mt-2">
+                                    📍 Click on the map to set the exact camp location. This is required for admin registration.
+                                </p>
                             </div>
 
                             {/* Capacity */}
@@ -310,8 +326,8 @@ function AdminRegisterCamp() {
                                             type="button"
                                             onClick={() => handleFacilityToggle(facility)}
                                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${formData.facilities.includes(facility)
-                                                    ? 'bg-primary-600 text-white'
-                                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                ? 'bg-primary-600 text-white'
+                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                                 }`}
                                         >
                                             {facility}
@@ -348,7 +364,9 @@ function AdminRegisterCamp() {
                                     disabled={submitting}
                                     className="flex-1 px-6 py-3 bg-success-600 hover:bg-success-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
                                 >
-                                    {submitting ? 'Registering...' : '⛺ Register Camp'}
+                                    {submitting
+                                        ? 'Processing...'
+                                        : (fromRequest ? '✅ Confirm & Register Camp' : '⛺ Register Camp')}
                                 </button>
                             </div>
                         </form>

@@ -12,21 +12,23 @@ CREATE TABLE IF NOT EXISTS camp_requests (
     -- Camp details
     camp_name VARCHAR(255) NOT NULL,
     district VARCHAR(100) NOT NULL,
+    ds_division VARCHAR(100), -- DS Division / Area
+    estimated_capacity INTEGER NOT NULL,
+    
+    -- Location details
     address TEXT NOT NULL,
+    nearby_landmark TEXT,
     latitude DECIMAL(10, 8),
     longitude DECIMAL(11, 8),
     
-    -- Capacity and facilities
-    estimated_capacity INTEGER NOT NULL,
+    -- Facilities and reason
     facilities_needed TEXT[], -- Array of needed facilities
+    reason TEXT NOT NULL,
     
     -- Requester info
     requester_name VARCHAR(255) NOT NULL,
     requester_phone VARCHAR(20) NOT NULL,
     requester_email VARCHAR(255),
-    
-    -- Additional info
-    reason TEXT NOT NULL,
     additional_notes TEXT,
     
     -- Status management

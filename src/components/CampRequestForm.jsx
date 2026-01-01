@@ -12,8 +12,16 @@ const districts = [
 ];
 
 const facilityOptions = [
-    'Food', 'Water', 'Medical', 'Shelter', 'Sanitation', 'Electricity',
-    'Communication', 'Transportation', 'Child Care', 'Elder Care'
+    'Food',
+    'Drinking Water',
+    'Medical Assistance',
+    'Temporary Shelter',
+    'Sanitation / Toilets',
+    'Electricity',
+    'Communication (mobile/internet)',
+    'Transportation',
+    'Child Care',
+    'Elder Care'
 ];
 
 /**
@@ -27,15 +35,17 @@ function CampRequestForm() {
     const [formData, setFormData] = useState({
         camp_name: '',
         district: '',
+        ds_division: '',
+        estimated_capacity: '',
         address: '',
+        nearby_landmark: '',
         latitude: '',
         longitude: '',
-        estimated_capacity: '',
         facilities_needed: [],
+        reason: '',
         requester_name: '',
         requester_phone: '',
         requester_email: '',
-        reason: '',
         additional_notes: ''
     });
 
@@ -63,15 +73,17 @@ function CampRequestForm() {
                 .insert({
                     camp_name: formData.camp_name,
                     district: formData.district,
+                    ds_division: formData.ds_division || null,
+                    estimated_capacity: parseInt(formData.estimated_capacity),
                     address: formData.address,
+                    nearby_landmark: formData.nearby_landmark || null,
                     latitude: formData.latitude ? parseFloat(formData.latitude) : null,
                     longitude: formData.longitude ? parseFloat(formData.longitude) : null,
-                    estimated_capacity: parseInt(formData.estimated_capacity),
                     facilities_needed: formData.facilities_needed,
+                    reason: formData.reason,
                     requester_name: formData.requester_name,
                     requester_phone: formData.requester_phone,
                     requester_email: formData.requester_email || null,
-                    reason: formData.reason,
                     additional_notes: formData.additional_notes || null,
                     status: 'pending'
                 });
@@ -139,7 +151,7 @@ function CampRequestForm() {
                         {/* Camp Details Section */}
                         <div>
                             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                                <span>⛺</span> Camp Details
+                                <span>⛺</span> Proposed Camp Information
                             </h3>
 
                             <div className="space-y-4">
@@ -178,21 +190,44 @@ function CampRequestForm() {
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Estimated Capacity (people) *
+                                            DS Division / Area
                                         </label>
                                         <input
-                                            type="number"
-                                            name="estimated_capacity"
-                                            value={formData.estimated_capacity}
+                                            type="text"
+                                            name="ds_division"
+                                            value={formData.ds_division}
                                             onChange={handleChange}
                                             className="input-field"
-                                            placeholder="e.g., 200"
-                                            min="1"
-                                            required
+                                            placeholder="e.g., Kelaniya DS Division"
                                         />
                                     </div>
                                 </div>
 
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Estimated Number of Affected People *
+                                    </label>
+                                    <input
+                                        type="number"
+                                        name="estimated_capacity"
+                                        value={formData.estimated_capacity}
+                                        onChange={handleChange}
+                                        className="input-field"
+                                        placeholder="e.g., 200"
+                                        min="1"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Location Section */}
+                        <div className="border-t pt-6">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                                <span>📍</span> Proposed Location
+                            </h3>
+
+                            <div className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Location Address *
@@ -202,15 +237,29 @@ function CampRequestForm() {
                                         value={formData.address}
                                         onChange={handleChange}
                                         className="input-field h-20"
-                                        placeholder="Complete address where the camp should be set up"
+                                        placeholder="Complete address or nearby landmark where the camp can be set up"
                                         required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Nearby Landmark
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="nearby_landmark"
+                                        value={formData.nearby_landmark}
+                                        onChange={handleChange}
+                                        className="input-field"
+                                        placeholder="e.g., Near Kelaniya Temple / School playground"
                                     />
                                 </div>
 
                                 <div className="grid md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Latitude (optional)
+                                            Latitude
                                         </label>
                                         <input
                                             type="text"
@@ -223,7 +272,7 @@ function CampRequestForm() {
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Longitude (optional)
+                                            Longitude
                                         </label>
                                         <input
                                             type="text"
@@ -235,13 +284,19 @@ function CampRequestForm() {
                                         />
                                     </div>
                                 </div>
+
+                                <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
+                                    <p className="text-sm text-blue-800">
+                                        ⚠️ Location coordinates are optional for the public. Admin will verify and finalize them.
+                                    </p>
+                                </div>
                             </div>
                         </div>
 
                         {/* Facilities Needed */}
                         <div className="border-t pt-6">
                             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                                <span>🏥</span> Facilities Needed
+                                <span>🏥</span> Facilities Needed (Select All That Apply)
                             </h3>
                             <div className="flex flex-wrap gap-2">
                                 {facilityOptions.map(facility => (
@@ -250,8 +305,8 @@ function CampRequestForm() {
                                         type="button"
                                         onClick={() => handleFacilityToggle(facility)}
                                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${formData.facilities_needed.includes(facility)
-                                                ? 'bg-primary-600 text-white'
-                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            ? 'bg-primary-600 text-white'
+                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                             }`}
                                     >
                                         {facility}
@@ -270,7 +325,7 @@ function CampRequestForm() {
                                 value={formData.reason}
                                 onChange={handleChange}
                                 className="input-field h-28"
-                                placeholder="Explain why this camp is needed (e.g., flood affected area, number of displaced people, etc.)"
+                                placeholder="Briefly explain the situation (e.g., flood affected area, evacuation count, urgent needs)"
                                 required
                             />
                         </div>
@@ -278,7 +333,7 @@ function CampRequestForm() {
                         {/* Your Information */}
                         <div className="border-t pt-6">
                             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                                <span>👤</span> Your Contact Information
+                                <span>👤</span> Requester Contact Information
                             </h3>
 
                             <div className="grid md:grid-cols-2 gap-4">
@@ -306,14 +361,15 @@ function CampRequestForm() {
                                         value={formData.requester_phone}
                                         onChange={handleChange}
                                         className="input-field"
-                                        placeholder="e.g., 077-1234567"
+                                        placeholder="077 123 4567"
                                         required
                                     />
+                                    <p className="text-xs text-gray-500 mt-1">(Primary contact method)</p>
                                 </div>
                             </div>
                             <div className="mt-4">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Email (optional)
+                                    Email
                                 </label>
                                 <input
                                     type="email"
@@ -327,16 +383,16 @@ function CampRequestForm() {
                         </div>
 
                         {/* Additional Notes */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Additional Notes (optional)
-                            </label>
+                        <div className="border-t pt-6">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                                <span>📎</span> Additional Notes
+                            </h3>
                             <textarea
                                 name="additional_notes"
                                 value={formData.additional_notes}
                                 onChange={handleChange}
                                 className="input-field h-20"
-                                placeholder="Any other information that might help with the review..."
+                                placeholder="Any extra details that may help authorities verify the request"
                             />
                         </div>
 
@@ -355,8 +411,8 @@ function CampRequestForm() {
                         </div>
                     </form>
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 }
 
