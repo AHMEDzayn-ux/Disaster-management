@@ -6,10 +6,12 @@ function CampRequestReview() {
     const navigate = useNavigate();
     const [requests, setRequests] = useState([]);
     const [selectedRequest, setSelectedRequest] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const loadRequests = async () => {
             try {
+                setLoading(true);
                 const { data, error } = await supabase
                     .from('camp_requests')
                     .select('*')
@@ -20,6 +22,8 @@ function CampRequestReview() {
                 setRequests(data || []);
             } catch (error) {
                 console.error('Error loading requests:', error);
+            } finally {
+                setLoading(false);
             }
         };
 
@@ -40,24 +44,13 @@ function CampRequestReview() {
     }, []);
 
     const handleApprove = (request) => {
-        // Navigate to camp management with pre-filled data matching database schema
-        const campData = {
-            name: `${request.district} Relief Camp - ${request.location}`,
-            type: 'Temporary Shelter',
-            capacity: request.approximate_people,
-            location: {
-                address: request.location,
-                lat: 6.9271,
-                lng: 79.8612,
-                district: request.district
-            },
-            contactPerson: request.reporter_name,
-            contactNumber: request.reporter_phone
-        };
-
-        // Store prefill data and navigate
-        localStorage.setItem('campPrefillData', JSON.stringify(campData));
-        navigate('/camp-management?from=request&id=' + request.id);
+        // Navigate to camp management with pre-filled data
+        navigate('/camp-management', {
+            state: {
+                requestData: request,
+                requestId: request.id
+            }
+        });
     };
 
     const handleReject = async (requestId, reason) => {
@@ -87,8 +80,8 @@ function CampRequestReview() {
     };
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="max-w-6xl mx-auto">
+        <div className="w-full px-4 py-8">
+            <div className="w-full">
                 <div className="mb-6">
                     <h1 className="text-3xl font-bold text-gray-800 mb-2">📋 Camp Requests Review</h1>
                     <p className="text-gray-600">
@@ -96,7 +89,12 @@ function CampRequestReview() {
                     </p>
                 </div>
 
-                {requests.length === 0 ? (
+                {loading ? (
+                    <div className="card text-center py-12">
+                        <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary-600 border-t-transparent mb-4"></div>
+                        <p className="text-gray-600">Loading camp requests...</p>
+                    </div>
+                ) : requests.length === 0 ? (
                     <div className="card text-center py-12">
                         <div className="text-6xl mb-4">✅</div>
                         <h3 className="text-xl font-bold text-gray-800 mb-2">No Pending Requests</h3>

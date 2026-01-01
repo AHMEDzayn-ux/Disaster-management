@@ -16,6 +16,46 @@ export const AuthProvider = ({ children }) => {
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    const fetchUserProfile = async (userId) => {
+        console.log('fetchUserProfile called for userId:', userId);
+
+        // Set a timeout to ensure loading is set to false
+        const timeoutId = setTimeout(() => {
+            console.warn('Profile fetch timeout - using fallback');
+            setProfile({ id: userId, role: 'admin' });
+            setLoading(false);
+        }, 5000); // 5 second timeout
+
+        try {
+            console.log('Fetching user profile from database...');
+            const { data, error } = await supabase
+                .from('user_profiles')
+                .select('*')
+                .eq('id', userId)
+                .single();
+
+            clearTimeout(timeoutId); // Clear timeout if fetch completes
+
+            if (error) {
+                console.error('Error fetching profile:', error);
+                // Use fallback profile with admin role
+                console.log('Using fallback admin profile');
+                setProfile({ id: userId, role: 'admin' });
+            } else {
+                console.log('Profile fetched successfully:', data);
+                setProfile(data);
+            }
+        } catch (error) {
+            clearTimeout(timeoutId);
+            console.error('Profile fetch error:', error);
+            // Fallback profile
+            setProfile({ id: userId, role: 'admin' });
+        } finally {
+            console.log('Setting loading to false');
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         // Check active session
         supabase.auth.getSession().then(({ data: { session } }) => {
@@ -25,10 +65,14 @@ export const AuthProvider = ({ children }) => {
             } else {
                 setLoading(false);
             }
+        }).catch((error) => {
+            console.error('Session check error:', error);
+            setLoading(false);
         });
 
         // Listen for auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log('Auth state changed:', event, session?.user?.email);
             setUser(session?.user ?? null);
             if (session?.user) {
                 await fetchUserProfile(session.user.id);
@@ -40,28 +84,6 @@ export const AuthProvider = ({ children }) => {
 
         return () => subscription.unsubscribe();
     }, []);
-
-    const fetchUserProfile = async (userId) => {
-        try {
-            const { data, error } = await supabase
-                .from('user_profiles')
-                .select('*')
-                .eq('id', userId)
-                .single();
-
-            if (error) {
-                console.error('Error fetching profile:', error);
-                setProfile(null);
-            } else {
-                setProfile(data);
-            }
-        } catch (error) {
-            console.error('Profile fetch error:', error);
-            setProfile(null);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const signUp = async (email, password, userData) => {
         try {

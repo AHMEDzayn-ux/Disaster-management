@@ -60,25 +60,27 @@ function MapController({ districtFilter, allDistricts }) {
 
 function MissingPersonsList({ role = 'responder' }) {
     const navigate = useNavigate();
-    const { missingPersons, loading, isInitialized, subscribeToMissingPersons, unsubscribeFromMissingPersons } = useMissingPersonStore();
+    const { missingPersons, loading } = useMissingPersonStore();
     const [statusFilter, setStatusFilter] = useState('all');
     const [districtFilter, setDistrictFilter] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'map'
-    const [isInitializing, setIsInitializing] = useState(!isInitialized);
+    const [isInitializing, setIsInitializing] = useState(true);
 
-    // Subscribe to real-time updates on mount
+    // Load missing persons on mount
     useEffect(() => {
-        if (!isInitialized) {
-            const initialize = async () => {
-                await subscribeToMissingPersons();
+        const initialize = async () => {
+            setIsInitializing(true);
+            try {
+                const { fetchMissingPersons } = useMissingPersonStore.getState();
+                await fetchMissingPersons();
+            } catch (error) {
+                console.error('Error loading missing persons:', error);
+            } finally {
                 setIsInitializing(false);
-            };
-            initialize();
-        } else {
-            setIsInitializing(false);
-        }
-        // Don't unsubscribe on unmount to maintain cache
+            }
+        };
+        initialize();
     }, []);
 
     // All 25 districts in Sri Lanka (matching EmergencyContacts)

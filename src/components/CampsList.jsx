@@ -58,27 +58,28 @@ function MapController({ districtFilter }) {
 
 function CampsList({ role = 'responder' }) {
     const navigate = useNavigate();
-    const { camps, loading, isInitialized, subscribeToCamps, unsubscribeFromCamps } = useCampStore();
+    const { camps, loading } = useCampStore();
     const [statusFilter, setStatusFilter] = useState('all');
     const [typeFilter, setTypeFilter] = useState('all');
     const [districtFilter, setDistrictFilter] = useState('all');
-    const [needsFilter, setNeedsFilter] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [viewMode, setViewMode] = useState('map'); // Default to map view as it's most important
-    const [isInitializing, setIsInitializing] = useState(!isInitialized);
+    const [isInitializing, setIsInitializing] = useState(true);
 
-    // Subscribe to real-time updates on mount
+    // Load camps on mount
     useEffect(() => {
-        if (!isInitialized) {
-            const initialize = async () => {
-                await subscribeToCamps();
+        const initialize = async () => {
+            setIsInitializing(true);
+            try {
+                const { fetchCamps } = useCampStore.getState();
+                await fetchCamps();
+            } catch (error) {
+                console.error('Error loading camps:', error);
+            } finally {
                 setIsInitializing(false);
-            };
-            initialize();
-        } else {
-            setIsInitializing(false);
-        }
-        // Don't unsubscribe on unmount to maintain cache
+            }
+        };
+        initialize();
     }, []);
 
     const allDistricts = [
@@ -88,23 +89,27 @@ function CampsList({ role = 'responder' }) {
         'Nuwara Eliya', 'Polonnaruwa', 'Puttalam', 'Ratnapura', 'Trincomalee', 'Vavuniya'
     ];
 
-    // Extract unique needs from all active camps
-    const allNeeds = [...new Set(camps.filter(c => c.status === 'Active').flatMap(c => c.needs))].sort();
-
     const filteredCamps = camps.filter(camp => {
+        // Support both old and new schema field names
+        const campStatus = camp.status || 'unknown';
+        const campType = camp.type || camp.campType || '';
+        const campDistrict = camp.location?.district || camp.district || '';
+        const campName = camp.name || camp.campName || '';
+        const campAddress = camp.location?.address || '';
+
         const matchesStatus = statusFilter === 'all' ||
-            (statusFilter === 'active' && camp.status === 'Active') ||
-            (statusFilter === 'closed' && camp.status === 'Closed');
-        const matchesType = typeFilter === 'all' || camp.campType === typeFilter;
-        const matchesDistrict = districtFilter === 'all' || camp.district === districtFilter;
-        const matchesNeeds = needsFilter === 'all' || (camp.needs && camp.needs.includes(needsFilter));
-        const matchesSearch = (camp.campName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (camp.location?.address || '').toLowerCase().includes(searchTerm.toLowerCase());
-        return matchesStatus && matchesType && matchesDistrict && matchesNeeds && matchesSearch;
+            (statusFilter === 'active' && (campStatus === 'Active' || campStatus === 'active')) ||
+            (statusFilter === 'closed' && (campStatus === 'Closed' || campStatus === 'inactive'));
+        const matchesType = typeFilter === 'all' || campType === typeFilter;
+        const matchesDistrict = districtFilter === 'all' || campDistrict === districtFilter;
+        const matchesSearch = campName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            campAddress.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            campDistrict.toLowerCase().includes(searchTerm.toLowerCase());
+        return matchesStatus && matchesType && matchesDistrict && matchesSearch;
     });
 
-    const activeCount = camps.filter(c => c.status === 'Active').length;
-    const closedCount = camps.filter(c => c.status === 'Closed').length;
+    const activeCount = camps.filter(c => c.status === 'Active' || c.status === 'active').length;
+    const closedCount = camps.filter(c => c.status === 'Closed' || c.status === 'inactive').length;
     const totalCapacity = camps.filter(c => c.status === 'Active').reduce((sum, c) => sum + c.capacity, 0);
     const totalOccupancy = camps.filter(c => c.status === 'Active').reduce((sum, c) => sum + c.currentOccupancy, 0);
 
@@ -189,28 +194,24 @@ function CampsList({ role = 'responder' }) {
                 </div>
             </div >
 
-            <div className="card mb-6">
-                <div className="grid grid-cols-2 sm:grid-cols-6 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
-                        <input type="text" placeholder="Camp name, location..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="input-field" />
+            <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Search Camps</label>
+                        <input
+                            type="text"
+                            placeholder="Search by name, location, or district..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="input-field"
+                        />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
                         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="input-field">
                             <option value="all">All Status</option>
-                            <option value="active">Active</option>
+                            <option value="active">Active Only</option>
                             <option value="closed">Closed</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
-                        <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="input-field">
-                            <option value="all">All Types</option>
-                            <option value="temporary-shelter">Temporary Shelter</option>
-                            <option value="emergency-evacuation">Emergency Evacuation</option>
-                            <option value="long-term-relief">Long-term Relief</option>
-                            <option value="medical-facility">Medical Facility</option>
                         </select>
                     </div>
                     <div>
@@ -222,20 +223,36 @@ function CampsList({ role = 'responder' }) {
                             ))}
                         </select>
                     </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">🎯 Filter by Urgent Need (for Donors)</label>
-                        <p className="text-xs text-gray-500 mb-1">Select a need to find camps requesting specific supplies or help.</p>
-                        <select value={needsFilter} onChange={(e) => setNeedsFilter(e.target.value)} className="input-field">
-                            <option value="all">All Needs</option>
-                            {allNeeds.map((need, idx) => (
-                                <option key={need + '-' + idx} value={need}>{need}</option>
-                            ))}
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Camp Type</label>
+                        <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="input-field">
+                            <option value="all">All Types</option>
+                            <option value="flood">Flood Relief</option>
+                            <option value="earthquake">Earthquake Relief</option>
+                            <option value="cyclone">Cyclone Relief</option>
+                            <option value="fire">Fire Relief</option>
+                            <option value="general">General Relief</option>
                         </select>
                     </div>
+                    <div className="md:col-span-2 flex items-end">
+                        <div className="text-sm text-gray-600">
+                            <span className="font-medium">Showing {filteredCamps.length}</span> of {camps.length} camps
+                        </div>
+                    </div>
                     <div className="flex items-end">
-                        <button onClick={() => { setSearchTerm(''); setStatusFilter('all'); setTypeFilter('all'); setDistrictFilter('all'); setNeedsFilter('all'); }} className="w-full px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors flex items-center justify-center gap-2">
-                            <span>✕</span>
-                            Clear Filters
+                        <button
+                            onClick={() => {
+                                setSearchTerm('');
+                                setStatusFilter('all');
+                                setTypeFilter('all');
+                                setDistrictFilter('all');
+                            }}
+                            className="w-full px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-lg transition-colors"
+                        >
+                            Clear All Filters
                         </button>
                     </div>
                 </div>
@@ -252,12 +269,12 @@ function CampsList({ role = 'responder' }) {
                                     <div className="flex items-start justify-between mb-4">
                                         <div className="flex-1">
                                             <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                                                <span>{getCampTypeIcon(camp.campType)}</span>
-                                                {camp.campName}
+                                                <span>{getCampTypeIcon(camp.campType || camp.type)}</span>
+                                                {camp.campName || camp.name}
                                             </h3>
-                                            <p className="text-sm text-gray-600 capitalize">{camp.campType?.replace('-', ' ') || 'Unknown'}</p>
+                                            <p className="text-sm text-gray-600 capitalize">{(camp.campType || camp.type)?.replace('-', ' ') || 'Unknown'}</p>
                                         </div>
-                                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${camp.status === 'Active' ? 'bg-success-100 text-success-700' : 'bg-gray-100 text-gray-700'}`}>
+                                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${(camp.status === 'Active' || camp.status === 'active') ? 'bg-success-100 text-success-700' : 'bg-gray-100 text-gray-700'}`}>
                                             {camp.status}
                                         </span>
                                     </div>
@@ -280,7 +297,7 @@ function CampsList({ role = 'responder' }) {
                                                 <span className="font-medium">📍</span> {camp.location?.address || 'N/A'}
                                             </p>
                                             <p className="text-sm text-gray-700">
-                                                <span className="font-medium">☎️</span> {camp.contactPerson?.name || 'N/A'} • {camp.contactPerson?.phone || 'N/A'}
+                                                <span className="font-medium">☎️</span> {camp.contactPerson?.name || camp.contact_person || 'N/A'} • {camp.contactPerson?.phone || camp.contact_number || 'N/A'}
                                             </p>
                                         </div>
 
@@ -348,22 +365,31 @@ function CampsList({ role = 'responder' }) {
                                 )}
 
                                 <MarkerClusterGroup chunkedLoading maxClusterRadius={30} disableClusteringAtZoom={9} removeOutsideVisibleBounds={false}>
-                                    {filteredCamps.filter(c => c.location && c.location.lat && c.location.lng).map((camp) => {
+                                    {filteredCamps.filter(c => {
+                                        // Support both old (location.lat) and new (location.coordinates.lat) schema
+                                        const hasCoords = (c.location?.lat && c.location?.lng) ||
+                                            (c.location?.coordinates?.lat && c.location?.coordinates?.lng);
+                                        return hasCoords;
+                                    }).map((camp) => {
                                         const occupancyPercent = Math.round((camp.currentOccupancy / camp.capacity) * 100);
+
+                                        // Support both old and new schema
+                                        const lat = camp.location?.coordinates?.lat || camp.location?.lat;
+                                        const lng = camp.location?.coordinates?.lng || camp.location?.lng;
 
                                         return (
                                             <Marker
                                                 key={camp.id}
-                                                position={[camp.location.lat, camp.location.lng]}
+                                                position={[lat, lng]}
                                                 icon={camp.status === 'Active' ? activeIcon : closedIcon}
                                             >
                                                 <Popup maxWidth={220} offset={[0, -10]}>
                                                     <div className="p-1">
                                                         <h3 className="font-bold text-sm mb-1">
-                                                            {getCampTypeIcon(camp.campType)} {camp.campName}
+                                                            {getCampTypeIcon(camp.campType || camp.type)} {camp.campName || camp.name}
                                                         </h3>
                                                         <div className="mb-2">
-                                                            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${camp.status === 'Active' ? 'bg-success-100 text-success-700' : 'bg-gray-100 text-gray-700'}`}>
+                                                            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${(camp.status === 'Active' || camp.status === 'active') ? 'bg-success-100 text-success-700' : 'bg-gray-100 text-gray-700'}`}>
                                                                 {camp.status}
                                                             </span>
                                                         </div>
@@ -379,8 +405,8 @@ function CampsList({ role = 'responder' }) {
                                                             </div>
                                                         </div>
                                                         <p className="text-xs text-gray-600 mb-1">📍 {camp.location?.address || 'N/A'}</p>
-                                                        <p className="text-xs text-gray-600 mb-1">👤 {camp.contactPerson?.name || 'N/A'}</p>
-                                                        <p className="text-xs text-gray-600 mb-2">☎️ {camp.contactPerson?.phone || 'N/A'}</p>
+                                                        <p className="text-xs text-gray-600 mb-1">👤 {camp.contactPerson?.name || camp.contact_person || 'N/A'}</p>
+                                                        <p className="text-xs text-gray-600 mb-2">☎️ {camp.contactPerson?.phone || camp.contact_number || 'N/A'}</p>
                                                         <button onClick={() => handleCampClick(camp)} className="btn-primary w-full text-xs py-1">
                                                             View Details
                                                         </button>

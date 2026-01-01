@@ -58,27 +58,29 @@ function MapController({ districtFilter }) {
 
 function DisasterReportsList({ role = 'responder' }) {
     const navigate = useNavigate();
-    const { disasters, loading, isInitialized, subscribeToDisasters, unsubscribeFromDisasters } = useDisasterStore();
+    const { disasters, loading } = useDisasterStore();
     const [statusFilter, setStatusFilter] = useState('all');
     const [districtFilter, setDistrictFilter] = useState('all');
     const [typeFilter, setTypeFilter] = useState('all');
     const [severityFilter, setSeverityFilter] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [viewMode, setViewMode] = useState('cards');
-    const [isInitializing, setIsInitializing] = useState(!isInitialized);
+    const [isInitializing, setIsInitializing] = useState(true);
 
-    // Subscribe to real-time updates on mount
+    // Load disasters on mount
     useEffect(() => {
-        if (!isInitialized) {
-            const initialize = async () => {
-                await subscribeToDisasters();
+        const initialize = async () => {
+            setIsInitializing(true);
+            try {
+                const { fetchDisasters } = useDisasterStore.getState();
+                await fetchDisasters();
+            } catch (error) {
+                console.error('Error loading disasters:', error);
+            } finally {
                 setIsInitializing(false);
-            };
-            initialize();
-        } else {
-            setIsInitializing(false);
-        }
-        // Don't unsubscribe on unmount to maintain cache
+            }
+        };
+        initialize();
     }, []);
 
     const allDistricts = [

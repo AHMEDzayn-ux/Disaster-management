@@ -5,7 +5,8 @@ import { MapContainer, TileLayer, Marker, Popup, Rectangle, useMap } from 'react
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import 'leaflet/dist/leaflet.css';
 import '../utils/leafletIconFix';
-import { redIcon, greenIcon } from '../utils/leafletIconFix'; import ScrollToTop from './shared/ScrollToTop';
+import { redIcon, greenIcon } from '../utils/leafletIconFix';
+import ScrollToTop from './shared/ScrollToTop';
 // Custom marker icons for different statuses
 const activeIcon = redIcon;
 const resolvedIcon = greenIcon;
@@ -58,25 +59,27 @@ function MapController({ districtFilter, allDistricts }) {
 
 function AnimalRescueList({ role = 'responder' }) {
     const navigate = useNavigate();
-    const { animalRescues, loading, isInitialized, subscribeToAnimalRescues, unsubscribeFromAnimalRescues } = useAnimalRescueStore();
+    const { animalRescues, loading } = useAnimalRescueStore();
     const [statusFilter, setStatusFilter] = useState('all');
     const [districtFilter, setDistrictFilter] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'map'
-    const [isInitializing, setIsInitializing] = useState(!isInitialized);
+    const [isInitializing, setIsInitializing] = useState(true);
 
-    // Subscribe to real-time updates on mount
+    // Load animal rescues on mount
     useEffect(() => {
-        if (!isInitialized) {
-            const initialize = async () => {
-                await subscribeToAnimalRescues();
+        const initialize = async () => {
+            setIsInitializing(true);
+            try {
+                const { fetchAnimalRescues } = useAnimalRescueStore.getState();
+                await fetchAnimalRescues();
+            } catch (error) {
+                console.error('Error loading animal rescues:', error);
+            } finally {
                 setIsInitializing(false);
-            };
-            initialize();
-        } else {
-            setIsInitializing(false);
-        }
-        // Don't unsubscribe on unmount to maintain cache
+            }
+        };
+        initialize();
     }, []);
 
     // All 25 districts in Sri Lanka

@@ -70,7 +70,7 @@ export const useMissingPersonStore = create((set, get) => ({
     fetchMissingPersons: async () => {
         try {
             set({ loading: true, error: null });
-            const persons = await getAllDocuments(TABLES.MISSING_PERSONS);
+            const { data: persons } = await getAllDocuments(TABLES.MISSING_PERSONS);
             set({ missingPersons: persons, loading: false });
         } catch (error) {
             set({ error: error.message, loading: false });
@@ -177,7 +177,7 @@ export const useDisasterStore = create((set, get) => ({
     fetchDisasters: async () => {
         try {
             set({ loading: true, error: null });
-            const disasters = await getAllDocuments(TABLES.DISASTERS);
+            const { data: disasters } = await getAllDocuments(TABLES.DISASTERS);
             set({ disasters, loading: false });
         } catch (error) {
             set({ error: error.message, loading: false });
@@ -281,7 +281,7 @@ export const useAnimalRescueStore = create((set, get) => ({
     fetchAnimalRescues: async () => {
         try {
             set({ loading: true, error: null });
-            const rescues = await getAllDocuments(TABLES.ANIMAL_RESCUES);
+            const { data: rescues } = await getAllDocuments(TABLES.ANIMAL_RESCUES);
             set({ animalRescues: rescues, loading: false });
         } catch (error) {
             set({ error: error.message, loading: false });
@@ -385,7 +385,7 @@ export const useCampStore = create((set, get) => ({
     fetchCamps: async () => {
         try {
             set({ loading: true, error: null });
-            const camps = await getAllDocuments(TABLES.CAMPS);
+            const { data: camps } = await getAllDocuments(TABLES.CAMPS);
             set({ camps, loading: false });
         } catch (error) {
             set({ error: error.message, loading: false });
@@ -608,3 +608,12 @@ export const useDonationStore = create((set, get) => ({
         }
     },
 }));
+
+// Combined store hook for convenience
+export const useSupabaseStore = () => ({
+    ...useMissingPersonStore(),
+    ...useDisasterStore(),
+    ...useAnimalRescueStore(),
+    ...useCampStore(),
+    ...useDonationStore(),
+});

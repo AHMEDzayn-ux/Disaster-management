@@ -6,6 +6,16 @@ function RoleSelection() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-primary-600 to-primary-800 flex items-center justify-center px-4">
+            {/* Admin Portal Link */}
+            <div className="absolute top-4 right-4">
+                <button
+                    onClick={() => navigate('/login')}
+                    className="text-white/70 hover:text-white text-sm underline"
+                >
+                    Admin Portal
+                </button>
+            </div>
+
             <div className="max-w-6xl w-full">
                 {/* Header */}
                 <div className="text-center mb-12">

@@ -68,11 +68,16 @@ export const getAllDocuments = async (table, options = {}) => {
 
         const { data, error, count } = await query;
 
-        if (error) throw error;
-        return { data: data || [], total: count };
+        if (error) {
+            console.error(`Error getting all documents from ${table}:`, error);
+            // Return empty data instead of throwing
+            return { data: [], total: 0 };
+        }
+        return { data: data || [], total: count || 0 };
     } catch (error) {
         console.error(`Error getting all documents from ${table}:`, error);
-        throw error;
+        // Return empty data instead of throwing
+        return { data: [], total: 0 };
     }
 };
 

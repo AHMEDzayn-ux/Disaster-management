@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -7,8 +7,15 @@ function Login() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const { signIn } = useAuth();
+    const { signIn, user } = useAuth();
     const navigate = useNavigate();
+
+    // Redirect if already logged in
+    useEffect(() => {
+        if (user) {
+            navigate('/admin', { replace: true });
+        }
+    }, [user, navigate]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -20,10 +27,8 @@ function Login() {
         if (error) {
             setError(error.message);
             setLoading(false);
-        } else {
-            // Redirect to admin dashboard
-            navigate('/admin');
         }
+        // Don't navigate here - let useEffect handle it when user is set
     };
 
     const fillTestCredentials = () => {

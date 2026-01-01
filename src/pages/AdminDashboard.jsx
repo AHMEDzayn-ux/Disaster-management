@@ -47,19 +47,12 @@ function AdminDashboard() {
                         </div>
                     </Link>
 
-                    <Link to="/camp-requests" className="card hover:shadow-lg transition-shadow cursor-pointer bg-warning-50 border-warning-300">
+                    <Link to="/camp-requests-review" className="card hover:shadow-lg transition-shadow cursor-pointer bg-warning-50 border-warning-300">
                         <div className="flex items-center gap-4">
                             <div className="text-5xl">📨</div>
                             <div>
                                 <h3 className="text-xl font-bold text-gray-800">Review Camp Requests</h3>
                                 <p className="text-gray-600 text-sm">Approve/reject public camp requests</p>
-                                <span className="text-xs text-warning-700 font-semibold mt-1 inline-block">
-                                    {(() => {
-                                        const requests = JSON.parse(localStorage.getItem('campRequests') || '[]');
-                                        const pending = requests.filter(r => r.status === 'pending').length;
-                                        return pending > 0 ? `${pending} pending` : 'No pending requests';
-                                    })()}
-                                </span>
                             </div>
                         </div>
                     </Link>

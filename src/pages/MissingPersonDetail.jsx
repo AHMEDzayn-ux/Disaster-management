@@ -126,6 +126,8 @@ function MissingPersonDetail({ role: propRole }) {
                                 src={person.photo}
                                 alt={person.name || 'Missing Person'}
                                 className="w-full rounded-lg border-2 border-gray-200 shadow-md"
+                                loading="lazy"
+                                decoding="async"
                             />
                         </div>
                     )}

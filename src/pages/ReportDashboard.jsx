@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 function ReportDashboard() {
     return (
-        <div className="container mx-auto px-4 py-8">
+        <div className="w-full px-4 py-8">
             <div className="mb-8">
                 <h1 className="text-4xl font-bold text-gray-800 mb-2">
                     Report Emergency
@@ -88,6 +88,26 @@ function ReportDashboard() {
                                 </p>
                                 <span className="text-sm font-semibold text-success-600">
                                     View Contacts →
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </Link>
+
+                {/* Request Relief Camp */}
+                <Link to="/request-camp" className="group">
+                    <div className="card hover:shadow-xl transition-all border-l-4 border-blue-500 h-full">
+                        <div className="flex items-start gap-4">
+                            <div className="text-4xl">🏕️</div>
+                            <div className="flex-1">
+                                <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-blue-600">
+                                    Request Relief Camp
+                                </h3>
+                                <p className="text-gray-600 mb-3">
+                                    Request a relief camp in your area
+                                </p>
+                                <span className="text-sm font-semibold text-blue-600">
+                                    Request Now →
                                 </span>
                             </div>
                         </div>
