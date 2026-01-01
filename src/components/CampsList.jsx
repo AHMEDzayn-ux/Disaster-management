@@ -58,7 +58,7 @@ function MapController({ districtFilter }) {
 
 function CampsList({ role = 'responder' }) {
     const navigate = useNavigate();
-    const { camps, loading } = useCampStore();
+    const { camps, loading, subscribeToCamps, unsubscribeFromCamps } = useCampStore();
     const [statusFilter, setStatusFilter] = useState('all');
     const [typeFilter, setTypeFilter] = useState('all');
     const [districtFilter, setDistrictFilter] = useState('all');
@@ -66,20 +66,35 @@ function CampsList({ role = 'responder' }) {
     const [viewMode, setViewMode] = useState('map'); // Default to map view as it's most important
     const [isInitializing, setIsInitializing] = useState(true);
 
-    // Load camps on mount
+    // Load camps on mount (with caching) + real-time updates
     useEffect(() => {
         const initialize = async () => {
-            setIsInitializing(true);
-            try {
-                const { fetchCamps } = useCampStore.getState();
-                await fetchCamps();
-            } catch (error) {
-                console.error('Error loading camps:', error);
-            } finally {
+            const { camps, fetchCamps } = useCampStore.getState();
+
+            // Only fetch if we don't have data yet
+            if (camps.length === 0) {
+                setIsInitializing(true);
+                try {
+                    await fetchCamps();
+                } catch (error) {
+                    console.error('Error loading camps:', error);
+                } finally {
+                    setIsInitializing(false);
+                }
+            } else {
+                // Use cached data
                 setIsInitializing(false);
             }
+
+            // Subscribe to real-time updates in background
+            await subscribeToCamps();
         };
         initialize();
+
+        // Cleanup: unsubscribe when component unmounts
+        return () => {
+            unsubscribeFromCamps();
+        };
     }, []);
 
     const allDistricts = [
@@ -144,16 +159,15 @@ function CampsList({ role = 'responder' }) {
         return icons[type] || '⛺';
     };
 
-    // Show loading state while initializing
+    // Show skeleton UI while initializing
     if (isInitializing) {
         return (
-            <div className="container mx-auto px-4 py-6">
-                <div className="flex items-center justify-center min-h-[400px]">
-                    <div className="text-center">
-                        <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary-600 border-t-transparent mb-4"></div>
-                        <p className="text-gray-600">Loading relief camps...</p>
-                    </div>
+            <div className="container mx-auto px-4 py-6 max-w-7xl">
+                <div className="mb-6">
+                    <div className="h-8 w-64 bg-gray-200 rounded animate-pulse mb-2"></div>
+                    <div className="h-4 w-48 bg-gray-200 rounded animate-pulse"></div>
                 </div>
+                <div className="h-96 bg-gray-200 rounded-lg animate-pulse"></div>
             </div>
         );
     }

@@ -58,7 +58,7 @@ function MapController({ districtFilter }) {
 
 function DisasterReportsList({ role = 'responder' }) {
     const navigate = useNavigate();
-    const { disasters, loading } = useDisasterStore();
+    const { disasters, loading, subscribeToDisasters, unsubscribeFromDisasters } = useDisasterStore();
     const [statusFilter, setStatusFilter] = useState('all');
     const [districtFilter, setDistrictFilter] = useState('all');
     const [typeFilter, setTypeFilter] = useState('all');
@@ -67,20 +67,35 @@ function DisasterReportsList({ role = 'responder' }) {
     const [viewMode, setViewMode] = useState('cards');
     const [isInitializing, setIsInitializing] = useState(true);
 
-    // Load disasters on mount
+    // Load disasters on mount (with caching) + real-time updates
     useEffect(() => {
         const initialize = async () => {
-            setIsInitializing(true);
-            try {
-                const { fetchDisasters } = useDisasterStore.getState();
-                await fetchDisasters();
-            } catch (error) {
-                console.error('Error loading disasters:', error);
-            } finally {
+            const { disasters, fetchDisasters } = useDisasterStore.getState();
+
+            // Only fetch if we don't have data yet
+            if (disasters.length === 0) {
+                setIsInitializing(true);
+                try {
+                    await fetchDisasters();
+                } catch (error) {
+                    console.error('Error loading disasters:', error);
+                } finally {
+                    setIsInitializing(false);
+                }
+            } else {
+                // Use cached data
                 setIsInitializing(false);
             }
+
+            // Subscribe to real-time updates in background
+            await subscribeToDisasters();
         };
         initialize();
+
+        // Cleanup: unsubscribe when component unmounts
+        return () => {
+            unsubscribeFromDisasters();
+        };
     }, []);
 
     const allDistricts = [
@@ -166,15 +181,25 @@ function DisasterReportsList({ role = 'responder' }) {
         navigate(route);
     };
 
-    // Show loading state while initializing
+    // Show skeleton UI while initializing
     if (isInitializing) {
         return (
-            <div className="container mx-auto px-4 py-6">
-                <div className="flex items-center justify-center min-h-[400px]">
-                    <div className="text-center">
-                        <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary-600 border-t-transparent mb-4"></div>
-                        <p className="text-gray-600">Loading disaster reports...</p>
-                    </div>
+            <div className="container mx-auto px-4 py-6 max-w-7xl">
+                <div className="mb-6">
+                    <div className="h-8 w-64 bg-gray-200 rounded animate-pulse mb-2"></div>
+                    <div className="h-4 w-48 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[1, 2, 3, 4, 5, 6].map(i => (
+                        <div key={i} className="card">
+                            <div className="h-48 bg-gray-200 rounded-lg animate-pulse mb-3"></div>
+                            <div className="space-y-2">
+                                <div className="h-5 bg-gray-200 rounded animate-pulse w-3/4"></div>
+                                <div className="h-4 bg-gray-200 rounded animate-pulse w-full"></div>
+                                <div className="h-4 bg-gray-200 rounded animate-pulse w-5/6"></div>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
         );
@@ -297,7 +322,7 @@ function DisasterReportsList({ role = 'responder' }) {
                             >
                                 {disaster.photo && (
                                     <div className="relative mb-4">
-                                        <img src={disaster.photo} alt={disasterType} className="w-full h-48 object-cover rounded-lg" />
+                                        <img src={disaster.photo} alt={disasterType} className="w-full h-48 object-cover rounded-lg" loading="lazy" decoding="async" />
                                         <div className="absolute top-2 right-2">
                                             <span className={`px-3 py-1 rounded-full text-sm font-semibold ${statusBadge.className}`}>
                                                 {statusBadge.text}
@@ -389,7 +414,7 @@ function DisasterReportsList({ role = 'responder' }) {
                                         >
                                             <Popup maxWidth={220} offset={[0, -10]}>
                                                 <div className="p-1">
-                                                    {disaster.photo && <img src={disaster.photo} alt={disasterType} className="w-full h-24 object-cover rounded mb-2" />}
+                                                    {disaster.photo && <img src={disaster.photo} alt={disasterType} className="w-full h-24 object-cover rounded mb-2" loading="lazy" decoding="async" />}
                                                     <h3 className="font-bold text-sm capitalize mb-1">
                                                         {getDisasterIcon(disasterType)} {disasterType.replace('-', ' ')}
                                                     </h3>

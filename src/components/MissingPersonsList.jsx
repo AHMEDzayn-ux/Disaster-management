@@ -60,27 +60,42 @@ function MapController({ districtFilter, allDistricts }) {
 
 function MissingPersonsList({ role = 'responder' }) {
     const navigate = useNavigate();
-    const { missingPersons, loading } = useMissingPersonStore();
+    const { missingPersons, loading, subscribeToMissingPersons, unsubscribeFromMissingPersons } = useMissingPersonStore();
     const [statusFilter, setStatusFilter] = useState('all');
     const [districtFilter, setDistrictFilter] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'map'
     const [isInitializing, setIsInitializing] = useState(true);
 
-    // Load missing persons on mount
+    // Load missing persons on mount (with caching) + real-time updates
     useEffect(() => {
         const initialize = async () => {
-            setIsInitializing(true);
-            try {
-                const { fetchMissingPersons } = useMissingPersonStore.getState();
-                await fetchMissingPersons();
-            } catch (error) {
-                console.error('Error loading missing persons:', error);
-            } finally {
+            const { missingPersons, fetchMissingPersons } = useMissingPersonStore.getState();
+
+            // Only fetch if we don't have data yet
+            if (missingPersons.length === 0) {
+                setIsInitializing(true);
+                try {
+                    await fetchMissingPersons();
+                } catch (error) {
+                    console.error('Error loading missing persons:', error);
+                } finally {
+                    setIsInitializing(false);
+                }
+            } else {
+                // Use cached data
                 setIsInitializing(false);
             }
+
+            // Subscribe to real-time updates in background
+            await subscribeToMissingPersons();
         };
         initialize();
+
+        // Cleanup: unsubscribe when component unmounts
+        return () => {
+            unsubscribeFromMissingPersons();
+        };
     }, []);
 
     // All 25 districts in Sri Lanka (matching EmergencyContacts)
@@ -150,15 +165,27 @@ function MissingPersonsList({ role = 'responder' }) {
         return 'Just now';
     };
 
-    // Show loading state while initializing
+    // Show skeleton UI while initializing
     if (isInitializing) {
         return (
-            <div className="container mx-auto px-4 py-6">
-                <div className="flex items-center justify-center min-h-[400px]">
-                    <div className="text-center">
-                        <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary-600 border-t-transparent mb-4"></div>
-                        <p className="text-gray-600">Loading missing persons data...</p>
-                    </div>
+            <div className="container mx-auto px-4 py-6 max-w-7xl">
+                <div className="mb-6">
+                    <div className="h-8 w-64 bg-gray-200 rounded animate-pulse mb-2"></div>
+                    <div className="h-4 w-48 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[1, 2, 3, 4, 5, 6].map(i => (
+                        <div key={i} className="card">
+                            <div className="flex gap-4">
+                                <div className="w-24 h-24 bg-gray-200 rounded-lg animate-pulse"></div>
+                                <div className="flex-1 space-y-2">
+                                    <div className="h-5 bg-gray-200 rounded animate-pulse w-3/4"></div>
+                                    <div className="h-4 bg-gray-200 rounded animate-pulse w-full"></div>
+                                    <div className="h-4 bg-gray-200 rounded animate-pulse w-5/6"></div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
         );
@@ -266,6 +293,8 @@ function MissingPersonsList({ role = 'responder' }) {
                                             src={person.photo}
                                             alt={person.name || 'Missing Person'}
                                             className="w-24 h-24 rounded-lg object-cover border-2 border-gray-200"
+                                            loading="lazy"
+                                            decoding="async"
                                         />
                                     </div>
                                 )}
