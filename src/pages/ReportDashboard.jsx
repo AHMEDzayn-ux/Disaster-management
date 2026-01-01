@@ -93,6 +93,26 @@ function ReportDashboard() {
                         </div>
                     </div>
                 </Link>
+
+                {/* Request Camp */}
+                <Link to="/request-camp" className="group">
+                    <div className="card hover:shadow-xl transition-all border-l-4 border-warning-500 h-full">
+                        <div className="flex items-start gap-4">
+                            <div className="text-4xl">🏕️</div>
+                            <div className="flex-1">
+                                <h3 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-warning-600">
+                                    Request Relief Camp
+                                </h3>
+                                <p className="text-gray-600 mb-3">
+                                    Request a new relief camp in your area
+                                </p>
+                                <span className="text-sm font-semibold text-warning-600">
+                                    Request Now →
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </Link>
             </div>
 
             {/* Important Notice */}
