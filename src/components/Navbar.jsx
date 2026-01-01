@@ -82,7 +82,7 @@ function Navbar({ userType = 'reporter' }) {
                     {/* Mobile menu button */}
                     <button
                         onClick={() => setIsOpen(!isOpen)}
-                        className="lg:hidden text-white focus:outline-none p-2 rounded-md hover:bg-white/10 transition-colors"
+                        className="lg:hidden ml-auto text-white focus:outline-none p-2 rounded-md hover:bg-white/10 transition-colors"
                         aria-label="Toggle menu"
                     >
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
