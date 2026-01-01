@@ -5,7 +5,9 @@ import { MapContainer, TileLayer, Marker, Popup, Rectangle, useMap } from 'react
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import 'leaflet/dist/leaflet.css';
 import '../utils/leafletIconFix';
-import { redIcon, greenIcon } from '../utils/leafletIconFix'; import ScrollToTop from './shared/ScrollToTop';
+import { redIcon, greenIcon } from '../utils/leafletIconFix';
+import ScrollToTop from './shared/ScrollToTop';
+import LazyImage from './shared/LazyImage';
 // Custom marker icons for different statuses
 const activeIcon = redIcon;
 const resolvedIcon = greenIcon;
@@ -327,10 +329,11 @@ function AnimalRescueList({ role = 'responder' }) {
                                     >
                                         {/* Animal Photo */}
                                         <div className="relative mb-4">
-                                            <img
+                                            <LazyImage
                                                 src={rescue.photo}
                                                 alt={rescue.animalType}
-                                                className="w-full h-48 object-cover rounded-lg"
+                                                className="w-full h-48 rounded-lg"
+                                                aspectRatio="16/9"
                                             />
                                             <div className="absolute top-2 right-2">
                                                 <span className={`px-3 py-1 rounded-full text-sm font-semibold ${statusBadge.className}`}>
@@ -445,10 +448,11 @@ function AnimalRescueList({ role = 'responder' }) {
                                     >
                                         <Popup maxWidth={220} offset={[0, -10]}>
                                             <div className="p-1">
-                                                <img
+                                                <LazyImage
                                                     src={rescue.photo}
                                                     alt={rescue.animalType}
-                                                    className="w-full h-24 object-cover rounded mb-2"
+                                                    className="w-full h-24 rounded mb-2"
+                                                    aspectRatio="16/9"
                                                 />
                                                 <h3 className="font-bold text-sm capitalize mb-1">
                                                     {getAnimalTypeIcon(rescue.animalType)} {rescue.animalType}

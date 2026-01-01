@@ -7,6 +7,7 @@ import 'leaflet/dist/leaflet.css';
 import '../utils/leafletIconFix';
 import { redIcon, greenIcon } from '../utils/leafletIconFix';
 import ScrollToTop from './shared/ScrollToTop';
+import LazyImage from './shared/LazyImage';
 
 // Custom marker icons for different statuses
 const activeIcon = redIcon;
@@ -295,7 +296,7 @@ function DisasterReportsList({ role = 'responder' }) {
                             >
                                 {disaster.photo && (
                                     <div className="relative mb-4">
-                                        <img src={disaster.photo} alt={disasterType} className="w-full h-48 object-cover rounded-lg" />
+                                        <LazyImage src={disaster.photo} alt={disasterType} className="w-full h-48 rounded-lg" aspectRatio="16/9" />
                                         <div className="absolute top-2 right-2">
                                             <span className={`px-3 py-1 rounded-full text-sm font-semibold ${statusBadge.className}`}>
                                                 {statusBadge.text}
@@ -387,7 +388,7 @@ function DisasterReportsList({ role = 'responder' }) {
                                         >
                                             <Popup maxWidth={220} offset={[0, -10]}>
                                                 <div className="p-1">
-                                                    {disaster.photo && <img src={disaster.photo} alt={disasterType} className="w-full h-24 object-cover rounded mb-2" />}
+                                                    {disaster.photo && <LazyImage src={disaster.photo} alt={disasterType} className="w-full h-24 rounded mb-2" aspectRatio="16/9" />}
                                                     <h3 className="font-bold text-sm capitalize mb-1">
                                                         {getDisasterIcon(disasterType)} {disasterType.replace('-', ' ')}
                                                     </h3>

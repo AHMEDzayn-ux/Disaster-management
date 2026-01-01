@@ -7,6 +7,7 @@ import 'leaflet/dist/leaflet.css';
 import '../utils/leafletIconFix';
 import { redIcon, greenIcon } from '../utils/leafletIconFix';
 import ScrollToTop from './shared/ScrollToTop';
+import LazyImage from './shared/LazyImage';
 
 // Custom marker icons for different statuses
 const activeIcon = redIcon;
@@ -260,10 +261,11 @@ function MissingPersonsList({ role = 'responder' }) {
                                 {/* Photo */}
                                 {person.photo && (
                                     <div className="flex-shrink-0">
-                                        <img
+                                        <LazyImage
                                             src={person.photo}
                                             alt={person.name || 'Missing Person'}
-                                            className="w-24 h-24 rounded-lg object-cover border-2 border-gray-200"
+                                            className="w-24 h-24 rounded-lg border-2 border-gray-200"
+                                            aspectRatio="1/1"
                                         />
                                     </div>
                                 )}
@@ -395,10 +397,11 @@ function MissingPersonsList({ role = 'responder' }) {
                                         <Popup maxWidth={300}>
                                             <div className="p-2">
                                                 <div className="flex gap-3 mb-3">
-                                                    <img
+                                                    <LazyImage
                                                         src={person.photo}
                                                         alt={person.name}
-                                                        className="w-16 h-16 rounded object-cover"
+                                                        className="w-16 h-16 rounded"
+                                                        aspectRatio="1/1"
                                                     />
                                                     <div className="flex-1">
                                                         <h3 className="font-bold text-gray-800">{person.name}</h3>

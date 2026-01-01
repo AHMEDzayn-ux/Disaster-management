@@ -13,6 +13,8 @@ export default defineConfig({
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           'form-vendor': ['react-hook-form'],
           'state-vendor': ['zustand'],
+          // Map libraries are heavy, load separately
+          'map-vendor': ['leaflet', 'react-leaflet', 'react-leaflet-cluster'],
         },
       },
     },
@@ -26,11 +28,17 @@ export default defineConfig({
         drop_debugger: true,
       },
     },
+    // Enable source maps for debugging (optional, can disable for smaller builds)
+    sourcemap: false,
   },
   // Optimize dev server
   server: {
     hmr: {
       overlay: true,
     },
+  },
+  // Optimize dependencies pre-bundling
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom', 'zustand'],
   },
 })
