@@ -4,7 +4,6 @@ import { Elements } from '@stripe/react-stripe-js';
 import { motion } from 'framer-motion';
 import { useDonationStore } from '../store/supabaseStore';
 import DonationCounter from '../components/DonationCounter';
-import DonationMotivation from '../components/DonationMotivation';
 import DonationForm from '../components/DonationForm';
 import RecentDonations from '../components/RecentDonations';
 import DonationList from '../components/DonationList';
@@ -53,13 +52,13 @@ function Donations() {
                     </h1>
                     <p className="text-lg text-gray-600 max-w-2xl mx-auto">
                         Your contribution helps provide emergency relief, shelter, food, and medical supplies
-                        to families affected by disasters. Every dollar makes a difference.
+                        to families affected by disasters. We accept donations in LKR and foreign currencies.
                     </p>
                 </motion.div>
 
                 {/* Donation Counter - Always Visible */}
                 <div className="mb-8">
-                    <DonationCounter goalAmount={200000} />
+                    <DonationCounter />
                 </div>
 
                 {/* Tab Navigation */}
@@ -68,8 +67,8 @@ function Donations() {
                         <button
                             onClick={() => setActiveTab('donate')}
                             className={`px-6 py-3 rounded-md font-semibold transition-all duration-200 ${activeTab === 'donate'
-                                    ? 'bg-blue-600 text-white shadow-md'
-                                    : 'text-gray-600 hover:bg-gray-100'
+                                ? 'bg-blue-600 text-white shadow-md'
+                                : 'text-gray-600 hover:bg-gray-100'
                                 }`}
                         >
                             🎁 Make a Donation
@@ -77,8 +76,8 @@ function Donations() {
                         <button
                             onClick={() => setActiveTab('transparency')}
                             className={`px-6 py-3 rounded-md font-semibold transition-all duration-200 ${activeTab === 'transparency'
-                                    ? 'bg-blue-600 text-white shadow-md'
-                                    : 'text-gray-600 hover:bg-gray-100'
+                                ? 'bg-blue-600 text-white shadow-md'
+                                : 'text-gray-600 hover:bg-gray-100'
                                 }`}
                         >
                             📊 Transparency Report
@@ -90,10 +89,7 @@ function Donations() {
                 {activeTab === 'donate' ? (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* Left Column: Form */}
-                        <div className="lg:col-span-2 space-y-6">
-                            {/* Motivational Message */}
-                            <DonationMotivation />
-
+                        <div className="lg:col-span-2">
                             {/* Donation Form */}
                             <Elements stripe={stripePromise}>
                                 <DonationForm onSuccess={handleDonationSuccess} />
@@ -140,9 +136,9 @@ function Donations() {
                                 <p className="text-gray-600">
                                     Your generous donation of{' '}
                                     <span className="font-bold text-green-600 text-xl">
-                                        ${parseFloat(successData.amount).toFixed(2)}
+                                        {successData.currency === 'LKR' ? 'Rs.' : '$'}{parseFloat(successData.amount).toLocaleString()}
                                     </span>
-                                    {' '}has been received!
+                                    {' '}({successData.currency}) has been received!
                                 </p>
                             </div>
 
@@ -198,29 +194,18 @@ function Donations() {
                     className="mt-12 bg-white rounded-xl shadow-md p-6"
                 >
                     <h3 className="text-xl font-bold text-gray-800 mb-4 text-center">
-                        Why Donate Through Our Platform?
+                        Official Government Bank Account
                     </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="text-center">
-                            <div className="text-4xl mb-2">🔒</div>
-                            <h4 className="font-semibold text-gray-800 mb-1">Secure Payments</h4>
-                            <p className="text-sm text-gray-600">
-                                All transactions encrypted and processed through Stripe's secure platform
-                            </p>
-                        </div>
-                        <div className="text-center">
-                            <div className="text-4xl mb-2">📊</div>
-                            <h4 className="font-semibold text-gray-800 mb-1">100% Transparency</h4>
-                            <p className="text-sm text-gray-600">
-                                Track every donation in real-time with complete financial transparency
-                            </p>
-                        </div>
-                        <div className="text-center">
-                            <div className="text-4xl mb-2">⚡</div>
-                            <h4 className="font-semibold text-gray-800 mb-1">Immediate Impact</h4>
-                            <p className="text-sm text-gray-600">
-                                Funds reach relief operations quickly to help those who need it most
-                            </p>
+                    <div className="flex flex-col items-center justify-center gap-4">
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 max-w-md w-full text-center">
+                            <p className="text-lg font-semibold text-gray-700 mb-2">All donations are deposited directly to the official government disaster relief account.</p>
+                            <div className="bg-white rounded-lg p-4 shadow text-left">
+                                <div className="mb-2"><span className="font-bold">Bank Name:</span> [Official Bank Name]</div>
+                                <div className="mb-2"><span className="font-bold">Account Name:</span> [Government Disaster Relief Fund]</div>
+                                <div className="mb-2"><span className="font-bold">Account Number:</span> [000-000-0000]</div>
+                                <div><span className="font-bold">Branch:</span> [Branch Name]</div>
+                            </div>
+                            <p className="text-sm text-gray-600 mt-4">Your contribution goes directly to government-coordinated relief efforts, ensuring maximum impact and transparency.</p>
                         </div>
                     </div>
                 </motion.div>
@@ -229,17 +214,31 @@ function Donations() {
                 {!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY && (
                     <div className="mt-6 bg-red-50 border-2 border-red-300 rounded-lg p-4">
                         <div className="flex items-start gap-3">
-                            <svg className="w-6 h-6 text-red-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <svg className="w-6 h-6 text-red-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                             </svg>
-                            <div>
-                                <h4 className="font-bold text-red-800 mb-1">⚠️ Configuration Required</h4>
-                                <p className="text-sm text-red-700">
-                                    To enable donations, add your Stripe publishable key to your <code className="bg-red-100 px-1 rounded">.env</code> file:
+                            <div className="flex-1">
+                                <h4 className="font-bold text-red-800 mb-2">⚠️ Stripe Payment Configuration Required</h4>
+                                <p className="text-sm text-red-700 mb-3">
+                                    To enable donation payments, you need to set up Stripe. This involves:
                                 </p>
-                                <code className="block mt-2 bg-red-100 p-2 rounded text-xs">
-                                    VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_key_here
-                                </code>
+                                <ol className="text-sm text-red-700 mb-3 ml-4 space-y-1 list-decimal">
+                                    <li>Creating a Stripe account and getting API keys</li>
+                                    <li>Adding your publishable key to the <code className="bg-red-100 px-1 rounded">.env</code> file</li>
+                                    <li>Setting up a backend endpoint for payment processing</li>
+                                    <li>Configuring currency support (LKR and foreign currencies)</li>
+                                </ol>
+                                <div className="bg-red-100 p-3 rounded mb-3">
+                                    <p className="text-sm font-semibold text-red-800 mb-1">Quick Start:</p>
+                                    <code className="block text-xs bg-white p-2 rounded">
+                                        VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_key_here
+                                    </code>
+                                </div>
+                                <p className="text-sm text-red-700">
+                                    📖 <strong>For complete setup instructions</strong>, please refer to{' '}
+                                    <code className="bg-red-100 px-1 rounded font-semibold">STRIPE_SETUP_GUIDE.md</code>{' '}
+                                    in the project root directory.
+                                </p>
                             </div>
                         </div>
                     </div>

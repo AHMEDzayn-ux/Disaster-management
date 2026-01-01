@@ -26,8 +26,6 @@ function Navbar({ userType = 'reporter' }) {
 
     const navLinks = userType === 'reporter' ? reporterLinks : responderLinks;
     const navColor = userType === 'reporter' ? 'bg-danger-600' : 'bg-success-600';
-    const navColorHover = userType === 'reporter' ? 'bg-danger-700' : 'bg-success-700';
-    const navColorLight = userType === 'reporter' ? 'bg-danger-500' : 'bg-success-500';
 
     const isActive = (path) => location.pathname === path;
 

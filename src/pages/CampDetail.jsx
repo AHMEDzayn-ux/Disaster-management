@@ -170,7 +170,7 @@ function CampDetail() {
                     <div className="card">
                         <h3 className="text-lg font-semibold text-gray-800 mb-4">📦 Supply Status</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {Object.entries(camp.supplies).map(([key, supply]) => {
+                            {Object.entries(camp.supplies || {}).map(([key, supply]) => {
                                 const badge = getStockBadge(supply.stock);
                                 return (
                                     <div key={key} className={`p-4 border-2 rounded-lg ${badge.className}`}>
@@ -185,7 +185,7 @@ function CampDetail() {
                         </div>
                     </div>
 
-                    {camp.needs.length > 0 && (
+                    {Array.isArray(camp.needs) && camp.needs.length > 0 && (
                         <div className="card bg-warning-50 border-warning-300">
                             <h3 className="text-lg font-semibold text-warning-800 mb-4">⚠️ Urgent Needs</h3>
                             <div className="flex flex-wrap gap-2">

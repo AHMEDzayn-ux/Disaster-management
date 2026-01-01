@@ -106,51 +106,38 @@ function DonationList() {
 
     return (
         <div className="space-y-6">
-            {/* Statistics Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-4 text-white shadow-lg"
-                >
-                    <div className="text-sm opacity-90">Total Raised</div>
-                    <div className="text-3xl font-bold">${stats.total.toLocaleString()}</div>
-                    <div className="text-xs opacity-75 mt-1">{stats.count} donations</div>
-                </motion.div>
-
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-4 text-white shadow-lg"
-                >
-                    <div className="text-sm opacity-90">Average Donation</div>
-                    <div className="text-3xl font-bold">${stats.average.toFixed(2)}</div>
-                    <div className="text-xs opacity-75 mt-1">per contributor</div>
-                </motion.div>
-
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-4 text-white shadow-lg"
-                >
-                    <div className="text-sm opacity-90">Largest Donation</div>
-                    <div className="text-3xl font-bold">${stats.max.toLocaleString()}</div>
-                    <div className="text-xs opacity-75 mt-1">single contribution</div>
-                </motion.div>
-
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-4 text-white shadow-lg"
-                >
-                    <div className="text-sm opacity-90">Total Donors</div>
-                    <div className="text-3xl font-bold">{stats.count}</div>
-                    <div className="text-xs opacity-75 mt-1">generous people</div>
-                </motion.div>
-            </div>
+            {/* Compact Statistics Card */}
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl p-6 shadow-lg"
+            >
+                <h3 className="text-white text-lg font-bold mb-4 text-center">
+                    📊 Donation Statistics
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-white/10 backdrop-blur rounded-lg p-3 text-center">
+                        <div className="text-xs text-blue-100 mb-1">Total Raised</div>
+                        <div className="text-2xl font-bold text-white">LKR {stats.total.toLocaleString()}</div>
+                        <div className="text-xs text-blue-200 mt-1">{stats.count} donations</div>
+                    </div>
+                    <div className="bg-white/10 backdrop-blur rounded-lg p-3 text-center">
+                        <div className="text-xs text-blue-100 mb-1">Average</div>
+                        <div className="text-2xl font-bold text-white">LKR {stats.average.toFixed(0)}</div>
+                        <div className="text-xs text-blue-200 mt-1">per contributor</div>
+                    </div>
+                    <div className="bg-white/10 backdrop-blur rounded-lg p-3 text-center">
+                        <div className="text-xs text-blue-100 mb-1">Largest</div>
+                        <div className="text-2xl font-bold text-white">LKR {stats.max.toLocaleString()}</div>
+                        <div className="text-xs text-blue-200 mt-1">single gift</div>
+                    </div>
+                    <div className="bg-white/10 backdrop-blur rounded-lg p-3 text-center">
+                        <div className="text-xs text-blue-100 mb-1">Total Donors</div>
+                        <div className="text-2xl font-bold text-white">{stats.count}</div>
+                        <div className="text-xs text-blue-200 mt-1">generous people</div>
+                    </div>
+                </div>
+            </motion.div>
 
             {/* Filters */}
             <div className="bg-white rounded-lg shadow-md p-4">
@@ -284,10 +271,10 @@ function DonationList() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-lg font-bold text-green-600">
-                                                ${parseFloat(donation.amount).toFixed(2)}
+                                                {donation.currency === 'LKR' ? 'Rs.' : '$'}{parseFloat(donation.amount).toLocaleString()}
                                             </div>
                                             <div className="text-xs text-gray-500">
-                                                {donation.currency || 'USD'}
+                                                {donation.currency || 'LKR'}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">

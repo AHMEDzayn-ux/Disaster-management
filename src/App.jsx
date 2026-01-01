@@ -21,6 +21,7 @@ const CampManagement = lazy(() => import('./pages/CampManagement'));
 const Volunteers = lazy(() => import('./pages/Volunteers'));
 const Donations = lazy(() => import('./pages/Donations'));
 const BulkTestData = lazy(() => import('./pages/BulkTestData'));
+const Camps = lazy(() => import('./pages/Camps'));
 
 // Loading fallback component
 function PageLoader() {
@@ -60,7 +61,7 @@ function App() {
           <Route path="/disasters-list/:id" element={<><Navbar userType="responder" /><DisasterReportDetail role="responder" /></>} />
           <Route path="/animal-rescue-list" element={<><Navbar userType="responder" /><Dashboard role="responder" /></>} />
           <Route path="/animal-rescue-list/:id" element={<><Navbar userType="responder" /><AnimalRescueDetail role="responder" /></>} />
-          <Route path="/camps" element={<><Navbar userType="responder" /><Dashboard role="responder" /></>} />
+          <Route path="/camps" element={<><Navbar userType="responder" /><Camps /></>} />
           <Route path="/camps/:id" element={<><Navbar userType="responder" /><CampDetail /></>} />
           <Route path="/volunteers" element={<><Navbar userType="responder" /><Volunteers /></>} />
           <Route path="/donations" element={<><Navbar userType="responder" /><Donations /></>} />

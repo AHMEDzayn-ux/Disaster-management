@@ -1,20 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import CountUp from 'react-countup';
 import { useDonationStore } from '../store/supabaseStore';
 
-function DonationCounter({ goalAmount = 200000 }) {
+function DonationCounter() {
     const { totalRaised, donationStats } = useDonationStore();
-    const [previousTotal, setPreviousTotal] = useState(0);
-
-    useEffect(() => {
-        if (totalRaised > previousTotal) {
-            setPreviousTotal(totalRaised);
-        }
-    }, [totalRaised]);
-
-    const progressPercentage = Math.min((totalRaised / goalAmount) * 100, 100);
-    const isGoalReached = totalRaised >= goalAmount;
 
     return (
         <motion.div
@@ -37,10 +27,10 @@ function DonationCounter({ goalAmount = 200000 }) {
                     className="text-center mb-6"
                 >
                     <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
-                        🎯 Together We've Raised
+                        💝 Total Contributions
                     </h2>
                     <p className="text-blue-100 text-sm">
-                        {donationStats.successfulCount} generous donors have contributed
+                        Thank you to our {donationStats.successfulCount} generous donors
                     </p>
                 </motion.div>
 
@@ -52,8 +42,8 @@ function DonationCounter({ goalAmount = 200000 }) {
                     className="text-center mb-6"
                 >
                     <div className="text-5xl md:text-7xl font-extrabold text-white mb-2">
-                        $<CountUp
-                            start={previousTotal}
+                        LKR <CountUp
+                            start={0}
                             end={totalRaised}
                             duration={2.5}
                             separator=","
@@ -63,102 +53,44 @@ function DonationCounter({ goalAmount = 200000 }) {
                     </div>
                     {donationStats.avgDonation > 0 && (
                         <p className="text-blue-100 text-sm">
-                            Average donation: ${donationStats.avgDonation.toFixed(2)}
+                            Average donation: LKR {donationStats.avgDonation.toFixed(2)}
                         </p>
                     )}
                 </motion.div>
 
-                {/* Progress Bar */}
-                <div className="mb-6">
-                    <div className="flex justify-between items-center mb-2">
-                        <span className="text-white text-sm font-medium">
-                            Progress to Goal
-                        </span>
-                        <span className="text-white text-sm font-bold">
-                            {progressPercentage.toFixed(1)}%
-                        </span>
-                    </div>
-
-                    <div className="relative h-4 bg-white/20 rounded-full overflow-hidden">
-                        <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${progressPercentage}%` }}
-                            transition={{ duration: 1.5, delay: 0.6, ease: 'easeOut' }}
-                            className={`h-full rounded-full ${isGoalReached
-                                    ? 'bg-gradient-to-r from-green-400 to-emerald-500'
-                                    : 'bg-gradient-to-r from-yellow-400 to-orange-500'
-                                }`}
-                        >
-                            {/* Shimmer effect */}
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
-                        </motion.div>
-                    </div>
-
-                    <div className="flex justify-between items-center mt-2">
-                        <span className="text-blue-100 text-xs">
-                            ${totalRaised.toLocaleString()}
-                        </span>
-                        <span className="text-blue-100 text-xs">
-                            Goal: ${goalAmount.toLocaleString()}
-                        </span>
-                    </div>
-                </div>
-
-                {/* Goal Status */}
-                {isGoalReached ? (
-                    <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ type: 'spring', stiffness: 200 }}
-                        className="text-center bg-green-500/20 border-2 border-green-400 rounded-lg p-3"
-                    >
-                        <p className="text-green-100 font-bold text-lg">
-                            🎉 Goal Achieved! Thank you!
-                        </p>
-                        <p className="text-green-200 text-sm">
-                            Your generosity is making a real difference
-                        </p>
-                    </motion.div>
-                ) : (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.8 }}
-                        className="text-center bg-white/10 rounded-lg p-3"
-                    >
-                        <p className="text-white font-semibold">
-                            ${(goalAmount - totalRaised).toLocaleString()} more needed
-                        </p>
-                        <p className="text-blue-100 text-sm">
-                            to reach our relief goal
-                        </p>
-                    </motion.div>
-                )}
+                {/* Appreciation Message */}
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.6 }}
+                    className="text-center bg-white/10 rounded-lg p-4 mb-6"
+                >
+                    <p className="text-white font-semibold text-lg">
+                        🙏 Every Contribution Makes a Difference
+                    </p>
+                    <p className="text-blue-100 text-sm mt-1">
+                        Your generosity helps rebuild lives and communities
+                    </p>
+                </motion.div>
 
                 {/* Stats Row */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 1 }}
-                    className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-white/20"
+                    transition={{ delay: 0.8 }}
+                    className="grid grid-cols-2 gap-6 pt-6 border-t border-white/20"
                 >
                     <div className="text-center">
-                        <div className="text-2xl font-bold text-white">
+                        <div className="text-3xl font-bold text-white">
                             {donationStats.successfulCount}
                         </div>
-                        <div className="text-xs text-blue-100">Donors</div>
+                        <div className="text-sm text-blue-100 mt-1">Successful Donations</div>
                     </div>
                     <div className="text-center">
-                        <div className="text-2xl font-bold text-white">
-                            {donationStats.pendingCount}
+                        <div className="text-3xl font-bold text-white">
+                            LKR {totalRaised.toLocaleString()}
                         </div>
-                        <div className="text-xs text-blue-100">Pending</div>
-                    </div>
-                    <div className="text-center">
-                        <div className="text-2xl font-bold text-white">
-                            {donationStats.totalCount}
-                        </div>
-                        <div className="text-xs text-blue-100">Total</div>
+                        <div className="text-sm text-blue-100 mt-1">Total Raised</div>
                     </div>
                 </motion.div>
             </div>

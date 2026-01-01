@@ -223,11 +223,12 @@ function CampsList({ role = 'responder' }) {
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">🎯 Needs (Volunteer)</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">🎯 Filter by Urgent Need (for Donors)</label>
+                        <p className="text-xs text-gray-500 mb-1">Select a need to find camps requesting specific supplies or help.</p>
                         <select value={needsFilter} onChange={(e) => setNeedsFilter(e.target.value)} className="input-field">
                             <option value="all">All Needs</option>
-                            {allNeeds.map(need => (
-                                <option key={need} value={need}>{need}</option>
+                            {allNeeds.map((need, idx) => (
+                                <option key={need + '-' + idx} value={need}>{need}</option>
                             ))}
                         </select>
                     </div>
@@ -288,19 +289,19 @@ function CampsList({ role = 'responder' }) {
                                                 <div className="pt-2 border-t border-gray-200">
                                                     <p className="text-xs font-semibold text-gray-600 mb-2">Supply Status:</p>
                                                     <div className="flex flex-wrap gap-1">
-                                                        <span className={`px-2 py-1 rounded text-xs ${getStockBadge(camp.supplies.food.stock).className}`}>
-                                                            🍚 {getStockBadge(camp.supplies.food.stock).text}
+                                                        <span className={`px-2 py-1 rounded text-xs ${getStockBadge(camp.supplies?.food?.stock).className}`}>
+                                                            🍚 {getStockBadge(camp.supplies?.food?.stock).text}
                                                         </span>
-                                                        <span className={`px-2 py-1 rounded text-xs ${getStockBadge(camp.supplies.water.stock).className}`}>
-                                                            💧 {getStockBadge(camp.supplies.water.stock).text}
+                                                        <span className={`px-2 py-1 rounded text-xs ${getStockBadge(camp.supplies?.water?.stock).className}`}>
+                                                            💧 {getStockBadge(camp.supplies?.water?.stock).text}
                                                         </span>
-                                                        <span className={`px-2 py-1 rounded text-xs ${getStockBadge(camp.supplies.medicine.stock).className}`}>
-                                                            💊 {getStockBadge(camp.supplies.medicine.stock).text}
+                                                        <span className={`px-2 py-1 rounded text-xs ${getStockBadge(camp.supplies?.medicine?.stock).className}`}>
+                                                            💊 {getStockBadge(camp.supplies?.medicine?.stock).text}
                                                         </span>
                                                     </div>
                                                 </div>
 
-                                                {camp.needs.length > 0 && (
+                                                {Array.isArray(camp.needs) && camp.needs.length > 0 && (
                                                     <div className="bg-warning-50 border border-warning-200 rounded p-2">
                                                         <p className="text-xs font-semibold text-warning-800 mb-1">Urgent Needs:</p>
                                                         <p className="text-xs text-warning-700">{camp.needs.join(', ')}</p>
@@ -377,9 +378,9 @@ function CampsList({ role = 'responder' }) {
                                                                 <div className={`h-1.5 rounded-full ${occupancyPercent >= 90 ? 'bg-danger-500' : occupancyPercent >= 70 ? 'bg-warning-500' : 'bg-success-500'}`} style={{ width: `${occupancyPercent}%` }}></div>
                                                             </div>
                                                         </div>
-                                                        <p className="text-xs text-gray-600 mb-1">📍 {camp.location.address}</p>
-                                                        <p className="text-xs text-gray-600 mb-1">👤 {camp.contactPerson.name}</p>
-                                                        <p className="text-xs text-gray-600 mb-2">☎️ {camp.contactPerson.phone}</p>
+                                                        <p className="text-xs text-gray-600 mb-1">📍 {camp.location?.address || 'N/A'}</p>
+                                                        <p className="text-xs text-gray-600 mb-1">👤 {camp.contactPerson?.name || 'N/A'}</p>
+                                                        <p className="text-xs text-gray-600 mb-2">☎️ {camp.contactPerson?.phone || 'N/A'}</p>
                                                         <button onClick={() => handleCampClick(camp)} className="btn-primary w-full text-xs py-1">
                                                             View Details
                                                         </button>

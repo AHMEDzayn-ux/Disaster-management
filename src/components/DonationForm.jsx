@@ -4,7 +4,14 @@ import { motion } from 'framer-motion';
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useDonationStore } from '../store/supabaseStore';
 
-const PRESET_AMOUNTS = [10, 25, 50, 100, 250, 500];
+const PRESET_AMOUNTS = [500, 1000, 2500, 5000, 10000, 25000]; // LKR amounts
+
+const CURRENCIES = [
+    { code: 'LKR', symbol: 'Rs.', label: 'Sri Lankan Rupee', flag: '🇱🇰' },
+    { code: 'USD', symbol: '$', label: 'US Dollar', flag: '🇺🇸' },
+    { code: 'EUR', symbol: '€', label: 'Euro', flag: '🇪🇺' },
+    { code: 'GBP', symbol: '£', label: 'British Pound', flag: '🇬🇧' },
+];
 
 const DONATION_PURPOSES = [
     { value: 'general', label: 'General Relief Fund', category: 'general' },
@@ -22,8 +29,9 @@ function DonationForm({ onSuccess }) {
     const elements = useElements();
     const { addDonation } = useDonationStore();
 
-    const [selectedAmount, setSelectedAmount] = useState(50);
+    const [selectedAmount, setSelectedAmount] = useState(5000); // Default LKR 5000
     const [customAmount, setCustomAmount] = useState('');
+    const [selectedCurrency, setSelectedCurrency] = useState('LKR');
     const [isProcessing, setIsProcessing] = useState(false);
     const [paymentError, setPaymentError] = useState(null);
     const [step, setStep] = useState(1); // 1: Amount, 2: Info, 3: Payment
@@ -40,6 +48,11 @@ function DonationForm({ onSuccess }) {
     });
 
     const isAnonymous = watch('is_anonymous');
+
+    const getCurrencySymbol = () => {
+        const currency = CURRENCIES.find(c => c.code === selectedCurrency);
+        return currency ? currency.symbol : 'Rs.';
+    };
 
     const getFinalAmount = () => {
         return customAmount ? parseFloat(customAmount) : selectedAmount;
@@ -66,7 +79,7 @@ function DonationForm({ onSuccess }) {
 
         const finalAmount = getFinalAmount();
         if (!finalAmount || finalAmount < 1) {
-            setPaymentError('Please enter a valid donation amount (minimum $1)');
+            setPaymentError(`Please enter a valid donation amount (minimum ${getCurrencySymbol()}1)`);
             return;
         }
 
@@ -82,7 +95,7 @@ function DonationForm({ onSuccess }) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     amount: finalAmount,
-                    currency: 'usd',
+                    currency: selectedCurrency.toLowerCase(),
                     email: formData.donor_email,
                     metadata: {
                         purpose: formData.donation_purpose,
@@ -95,7 +108,7 @@ function DonationForm({ onSuccess }) {
                 throw new Error('Failed to initialize payment');
             }
 
-            const { clientSecret, paymentIntentId } = await response.json();
+            const { clientSecret } = await response.json();
 
             // Step 2: Confirm payment with Stripe
             const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
@@ -125,7 +138,7 @@ function DonationForm({ onSuccess }) {
                 donor_phone: formData.donor_phone || null,
                 is_anonymous: formData.is_anonymous,
                 amount: finalAmount,
-                currency: 'USD',
+                currency: selectedCurrency,
                 stripe_payment_id: paymentIntent.id,
                 stripe_payment_status: paymentIntent.status,
                 donation_purpose: purposeData.label,
@@ -143,8 +156,9 @@ function DonationForm({ onSuccess }) {
 
             // Reset form
             setStep(1);
-            setSelectedAmount(50);
+            setSelectedAmount(5000);
             setCustomAmount('');
+            setSelectedCurrency('LKR');
 
         } catch (error) {
             console.error('Donation error:', error);
@@ -170,8 +184,8 @@ function DonationForm({ onSuccess }) {
                         type="button"
                         onClick={() => handleAmountSelect(amount)}
                         className={`p-4 rounded-lg border-2 transition-all duration-200 ${selectedAmount === amount && !customAmount
-                                ? 'border-blue-600 bg-blue-50 shadow-md scale-105'
-                                : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
+                            ? 'border-blue-600 bg-blue-50 shadow-md scale-105'
+                            : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
                             }`}
                     >
                         <div className="text-2xl font-bold text-gray-800">${amount}</div>
@@ -297,23 +311,6 @@ function DonationForm({ onSuccess }) {
                 />
             </div>
 
-            {/* Purpose */}
-            <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Donation Purpose
-                </label>
-                <select
-                    {...register('donation_purpose')}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none"
-                >
-                    {DONATION_PURPOSES.map((purpose) => (
-                        <option key={purpose.value} value={purpose.value}>
-                            {purpose.label}
-                        </option>
-                    ))}
-                </select>
-            </div>
-
             {/* Message */}
             <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -359,8 +356,11 @@ function DonationForm({ onSuccess }) {
                 <div className="flex justify-between items-center">
                     <span className="text-gray-700 font-medium">Donation Amount:</span>
                     <span className="text-2xl font-bold text-blue-600">
-                        ${getFinalAmount().toFixed(2)}
+                        {getCurrencySymbol()}{getFinalAmount().toLocaleString()}
                     </span>
+                </div>
+                <div className="text-xs text-gray-600 mt-1 text-right">
+                    Currency: {selectedCurrency}
                 </div>
             </div>
 
@@ -433,7 +433,7 @@ function DonationForm({ onSuccess }) {
                         </>
                     ) : (
                         <>
-                            🎁 Donate ${getFinalAmount().toFixed(2)}
+                            🎁 Donate {getCurrencySymbol()}{getFinalAmount().toLocaleString()}
                         </>
                     )}
                 </button>
