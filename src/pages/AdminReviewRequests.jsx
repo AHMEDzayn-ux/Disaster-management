@@ -1,0 +1,310 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../config/supabase';
+
+function AdminReviewRequests() {
+    const navigate = useNavigate();
+    const { user, loading: authLoading } = useAuth();
+    const [requests, setRequests] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [filter, setFilter] = useState('pending');
+    const [selectedRequest, setSelectedRequest] = useState(null);
+    const [rejectionReason, setRejectionReason] = useState('');
+    const [processing, setProcessing] = useState(false);
+
+    // Redirect if not authenticated
+    useEffect(() => {
+        if (!authLoading && !user) {
+            navigate('/admin/login');
+        }
+    }, [user, authLoading, navigate]);
+
+    // Fetch camp requests
+    useEffect(() => {
+        if (user) {
+            fetchRequests();
+        }
+    }, [user, filter]);
+
+    const fetchRequests = async () => {
+        setLoading(true);
+        try {
+            let query = supabase
+                .from('camp_requests')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (filter !== 'all') {
+                query = query.eq('status', filter);
+            }
+
+            const { data, error } = await query;
+
+            if (error) throw error;
+            setRequests(data || []);
+        } catch (error) {
+            console.error('Error fetching requests:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleApprove = async (request) => {
+        if (!confirm('Are you sure you want to approve this camp request? This will create a new official camp.')) {
+            return;
+        }
+
+        setProcessing(true);
+        try {
+            // Create new camp from request
+            const { error: campError } = await supabase
+                .from('camps')
+                .insert({
+                    name: request.camp_name,
+                    district: request.district,
+                    location: {
+                        address: request.address,
+                        lat: request.latitude,
+                        lng: request.longitude
+                    },
+                    capacity: request.estimated_capacity,
+                    current_occupancy: 0,
+                    status: 'active',
+                    contact_name: request.requester_name,
+                    contact_phone: request.requester_phone,
+                    facilities: request.facilities_needed || [],
+                    supplies: {
+                        food: 'adequate',
+                        water: 'adequate',
+                        medicine: 'adequate'
+                    }
+                });
+
+            if (campError) throw campError;
+
+            // Update request status
+            const { error: updateError } = await supabase
+                .from('camp_requests')
+                .update({
+                    status: 'approved',
+                    reviewed_at: new Date().toISOString(),
+                    reviewed_by: user.id
+                })
+                .eq('id', request.id);
+
+            if (updateError) throw updateError;
+
+            alert('Camp request approved! The camp is now visible to the public.');
+            fetchRequests();
+            setSelectedRequest(null);
+        } catch (error) {
+            console.error('Error approving request:', error);
+            alert('Failed to approve request: ' + error.message);
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    const handleReject = async (request) => {
+        if (!rejectionReason.trim()) {
+            alert('Please provide a reason for rejection');
+            return;
+        }
+
+        setProcessing(true);
+        try {
+            const { error } = await supabase
+                .from('camp_requests')
+                .update({
+                    status: 'rejected',
+                    reviewed_at: new Date().toISOString(),
+                    reviewed_by: user.id,
+                    rejection_reason: rejectionReason
+                })
+                .eq('id', request.id);
+
+            if (error) throw error;
+
+            alert('Camp request rejected.');
+            fetchRequests();
+            setSelectedRequest(null);
+            setRejectionReason('');
+        } catch (error) {
+            console.error('Error rejecting request:', error);
+            alert('Failed to reject request: ' + error.message);
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    const formatDate = (dateString) => {
+        return new Date(dateString).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
+    const getStatusBadge = (status) => {
+        const badges = {
+            pending: 'bg-warning-100 text-warning-700',
+            approved: 'bg-success-100 text-success-700',
+            rejected: 'bg-danger-100 text-danger-700'
+        };
+        return badges[status] || 'bg-gray-100 text-gray-700';
+    };
+
+    if (authLoading || !user) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-600 border-t-transparent"></div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-gray-100">
+            {/* Header */}
+            <header className="bg-gray-800 text-white shadow-lg">
+                <div className="w-full px-4 sm:px-6 lg:px-8 py-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <Link to="/admin/dashboard" className="text-gray-400 hover:text-white transition-colors">
+                                ← Dashboard
+                            </Link>
+                            <h1 className="text-xl font-bold">📋 Review Camp Requests</h1>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            {/* Main Content */}
+            <main className="w-full px-4 sm:px-6 lg:px-8 py-8">
+                {/* Filters */}
+                <div className="flex gap-2 mb-6">
+                    {['pending', 'approved', 'rejected', 'all'].map((status) => (
+                        <button
+                            key={status}
+                            onClick={() => setFilter(status)}
+                            className={`px-4 py-2 rounded-lg font-medium capitalize transition-colors ${filter === status
+                                    ? 'bg-gray-800 text-white'
+                                    : 'bg-white text-gray-700 hover:bg-gray-100'
+                                }`}
+                        >
+                            {status}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Request List */}
+                {loading ? (
+                    <div className="flex justify-center py-12">
+                        <div className="animate-spin rounded-full h-8 w-8 border-4 border-primary-600 border-t-transparent"></div>
+                    </div>
+                ) : requests.length === 0 ? (
+                    <div className="bg-white rounded-xl p-12 text-center">
+                        <div className="text-6xl mb-4">📭</div>
+                        <h3 className="text-xl font-semibold text-gray-700 mb-2">No Requests Found</h3>
+                        <p className="text-gray-500">No {filter !== 'all' ? filter : ''} camp requests at this time.</p>
+                    </div>
+                ) : (
+                    <div className="grid gap-4">
+                        {requests.map((request) => (
+                            <div key={request.id} className="bg-white rounded-xl shadow-sm p-6">
+                                <div className="flex flex-wrap items-start justify-between gap-4">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <h3 className="text-lg font-bold text-gray-800">{request.camp_name}</h3>
+                                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(request.status)}`}>
+                                                {request.status}
+                                            </span>
+                                        </div>
+                                        <div className="grid sm:grid-cols-2 gap-2 text-sm text-gray-600">
+                                            <p>📍 {request.district} - {request.address}</p>
+                                            <p>👤 {request.requester_name} ({request.requester_phone})</p>
+                                            <p>👥 Capacity: {request.estimated_capacity}</p>
+                                            <p>🕒 {formatDate(request.created_at)}</p>
+                                        </div>
+                                        {request.facilities_needed && request.facilities_needed.length > 0 && (
+                                            <div className="mt-2 flex flex-wrap gap-1">
+                                                {request.facilities_needed.map((facility, idx) => (
+                                                    <span key={idx} className="px-2 py-1 bg-gray-100 rounded text-xs text-gray-600">
+                                                        {facility}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                        <p className="mt-2 text-sm text-gray-700"><strong>Reason:</strong> {request.reason}</p>
+                                        {request.rejection_reason && (
+                                            <p className="mt-2 text-sm text-danger-600"><strong>Rejection Reason:</strong> {request.rejection_reason}</p>
+                                        )}
+                                    </div>
+
+                                    {request.status === 'pending' && (
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => handleApprove(request)}
+                                                disabled={processing}
+                                                className="px-4 py-2 bg-success-600 hover:bg-success-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                                            >
+                                                ✓ Approve
+                                            </button>
+                                            <button
+                                                onClick={() => setSelectedRequest(request)}
+                                                disabled={processing}
+                                                className="px-4 py-2 bg-danger-600 hover:bg-danger-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                                            >
+                                                ✕ Reject
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Rejection Modal */}
+                {selectedRequest && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-xl p-6 max-w-md w-full">
+                            <h3 className="text-lg font-bold text-gray-800 mb-4">Reject Camp Request</h3>
+                            <p className="text-sm text-gray-600 mb-4">
+                                Please provide a reason for rejecting "{selectedRequest.camp_name}"
+                            </p>
+                            <textarea
+                                value={rejectionReason}
+                                onChange={(e) => setRejectionReason(e.target.value)}
+                                placeholder="Enter rejection reason..."
+                                className="input-field h-24 mb-4"
+                            />
+                            <div className="flex gap-2 justify-end">
+                                <button
+                                    onClick={() => {
+                                        setSelectedRequest(null);
+                                        setRejectionReason('');
+                                    }}
+                                    className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={() => handleReject(selectedRequest)}
+                                    disabled={processing || !rejectionReason.trim()}
+                                    className="px-4 py-2 bg-danger-600 hover:bg-danger-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                                >
+                                    {processing ? 'Rejecting...' : 'Reject Request'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </main>
+        </div>
+    );
+}
+
+export default AdminReviewRequests;

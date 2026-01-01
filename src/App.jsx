@@ -1,6 +1,8 @@
 import React, { lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
+import { AuthProvider } from './contexts/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
 
 // Eager load only critical pages
 import RoleSelection from './pages/RoleSelection';
@@ -23,6 +25,13 @@ const Donations = lazy(() => import('./pages/Donations'));
 const BulkTestData = lazy(() => import('./pages/BulkTestData'));
 const Camps = lazy(() => import('./pages/Camps'));
 
+// Admin pages (lazy loaded)
+const AdminLogin = lazy(() => import('./pages/AdminLogin'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const AdminReviewRequests = lazy(() => import('./pages/AdminReviewRequests'));
+const AdminRegisterCamp = lazy(() => import('./pages/AdminRegisterCamp'));
+const CampRequestForm = lazy(() => import('./components/CampRequestForm'));
+
 // Loading fallback component
 function PageLoader() {
   return (
@@ -37,40 +46,51 @@ function PageLoader() {
 
 function App() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Suspense fallback={<PageLoader />}>
-        <Routes>
-          {/* Landing - Role Selection (No Navbar) - Eager loaded */}
-          <Route path="/" element={<RoleSelection />} />
+    <AuthProvider>
+      <div className="min-h-screen bg-gray-50">
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            {/* Landing - Role Selection (No Navbar) - Eager loaded */}
+            <Route path="/" element={<RoleSelection />} />
 
-          {/* Report Interface (for victims/reporters) - Lazy loaded */}
-          <Route path="/report" element={<><Navbar userType="reporter" /><ReportDashboard /></>} />
-          <Route path="/missing-persons" element={<><Navbar userType="reporter" /><MissingPersons /></>} />
-          <Route path="/missing-persons/:id" element={<><Navbar userType="reporter" /><MissingPersonDetail role="reporter" /></>} />
-          <Route path="/disasters" element={<><Navbar userType="reporter" /><DisasterReports /></>} />
-          <Route path="/disasters/:id" element={<><Navbar userType="reporter" /><DisasterReportDetail role="reporter" /></>} />
-          <Route path="/animal-rescue" element={<><Navbar userType="reporter" /><AnimalRescue /></>} />
-          <Route path="/animal-rescue/:id" element={<><Navbar userType="reporter" /><AnimalRescueDetail role="reporter" /></>} />
-          <Route path="/emergency" element={<><Navbar userType="reporter" /><EmergencyContacts /></>} />
+            {/* Report Interface (for victims/reporters) - Lazy loaded */}
+            <Route path="/report" element={<><Navbar userType="reporter" /><ReportDashboard /></>} />
+            <Route path="/missing-persons" element={<><Navbar userType="reporter" /><MissingPersons /></>} />
+            <Route path="/missing-persons/:id" element={<><Navbar userType="reporter" /><MissingPersonDetail role="reporter" /></>} />
+            <Route path="/disasters" element={<><Navbar userType="reporter" /><DisasterReports /></>} />
+            <Route path="/disasters/:id" element={<><Navbar userType="reporter" /><DisasterReportDetail role="reporter" /></>} />
+            <Route path="/animal-rescue" element={<><Navbar userType="reporter" /><AnimalRescue /></>} />
+            <Route path="/animal-rescue/:id" element={<><Navbar userType="reporter" /><AnimalRescueDetail role="reporter" /></>} />
+            <Route path="/emergency" element={<><Navbar userType="reporter" /><EmergencyContacts /></>} />
 
-          {/* Respond Interface (for helpers/responders) - Lazy loaded */}
-          <Route path="/respond" element={<><Navbar userType="responder" /><RespondDashboard /></>} />
-          <Route path="/missing-persons-list" element={<><Navbar userType="responder" /><Dashboard role="responder" /></>} />
-          <Route path="/missing-persons-list/:id" element={<><Navbar userType="responder" /><MissingPersonDetail role="responder" /></>} />
-          <Route path="/disasters-list" element={<><Navbar userType="responder" /><Dashboard role="responder" /></>} />
-          <Route path="/disasters-list/:id" element={<><Navbar userType="responder" /><DisasterReportDetail role="responder" /></>} />
-          <Route path="/animal-rescue-list" element={<><Navbar userType="responder" /><Dashboard role="responder" /></>} />
-          <Route path="/animal-rescue-list/:id" element={<><Navbar userType="responder" /><AnimalRescueDetail role="responder" /></>} />
-          <Route path="/camps" element={<><Navbar userType="responder" /><Camps /></>} />
-          <Route path="/camps/:id" element={<><Navbar userType="responder" /><CampDetail /></>} />
-          <Route path="/volunteers" element={<><Navbar userType="responder" /><Volunteers /></>} />
-          <Route path="/donations" element={<><Navbar userType="responder" /><Donations /></>} />
+            {/* Respond Interface (for helpers/responders) - Lazy loaded */}
+            <Route path="/respond" element={<><Navbar userType="responder" /><RespondDashboard /></>} />
+            <Route path="/missing-persons-list" element={<><Navbar userType="responder" /><Dashboard role="responder" /></>} />
+            <Route path="/missing-persons-list/:id" element={<><Navbar userType="responder" /><MissingPersonDetail role="responder" /></>} />
+            <Route path="/disasters-list" element={<><Navbar userType="responder" /><Dashboard role="responder" /></>} />
+            <Route path="/disasters-list/:id" element={<><Navbar userType="responder" /><DisasterReportDetail role="responder" /></>} />
+            <Route path="/animal-rescue-list" element={<><Navbar userType="responder" /><Dashboard role="responder" /></>} />
+            <Route path="/animal-rescue-list/:id" element={<><Navbar userType="responder" /><AnimalRescueDetail role="responder" /></>} />
+            <Route path="/camps" element={<><Navbar userType="responder" /><Camps /></>} />
+            <Route path="/camps/:id" element={<><Navbar userType="responder" /><CampDetail /></>} />
+            <Route path="/volunteers" element={<><Navbar userType="responder" /><Volunteers /></>} />
+            <Route path="/donations" element={<><Navbar userType="responder" /><Donations /></>} />
 
-          {/* Bulk Test Data Generator */}
-          <Route path="/bulk-test-data" element={<BulkTestData />} />
-        </Routes>
-      </Suspense>
-    </div>
+            {/* Public Camp Request Form (NO AUTH REQUIRED) */}
+            <Route path="/request-camp" element={<><Navbar userType="responder" /><CampRequestForm /></>} />
+
+            {/* Admin Routes - Authentication required ONLY for these */}
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin/dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+            <Route path="/admin/review-requests" element={<ProtectedRoute><AdminReviewRequests /></ProtectedRoute>} />
+            <Route path="/admin/register-camp" element={<ProtectedRoute><AdminRegisterCamp /></ProtectedRoute>} />
+
+            {/* Bulk Test Data Generator */}
+            <Route path="/bulk-test-data" element={<BulkTestData />} />
+          </Routes>
+        </Suspense>
+      </div>
+    </AuthProvider>
   );
 }
 

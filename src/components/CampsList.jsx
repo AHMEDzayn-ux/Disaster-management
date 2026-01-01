@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useCampStore } from '../store';
 import { MapContainer, TileLayer, Marker, Popup, Rectangle, useMap } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
@@ -167,6 +167,12 @@ function CampsList({ role = 'responder' }) {
 
                     {/* View Mode Toggle */}
                     <div className="flex gap-2">
+                        <Link
+                            to="/request-camp"
+                            className="px-4 py-2 rounded-lg font-medium bg-warning-500 hover:bg-warning-600 text-white transition-colors"
+                        >
+                            📋 Request New Camp
+                        </Link>
                         <button
                             onClick={() => setViewMode('cards')}
                             className={`px-4 py-2 rounded-lg font-medium transition-colors ${viewMode === 'cards'
