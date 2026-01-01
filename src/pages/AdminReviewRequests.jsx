@@ -62,23 +62,19 @@ function AdminReviewRequests() {
                 .from('camps')
                 .insert({
                     name: request.camp_name,
-                    district: request.district,
+                    type: 'Relief Camp',
                     location: {
                         address: request.address,
                         lat: request.latitude,
-                        lng: request.longitude
+                        lng: request.longitude,
+                        district: request.district
                     },
                     capacity: request.estimated_capacity,
                     current_occupancy: 0,
-                    status: 'active',
-                    contact_name: request.requester_name,
-                    contact_phone: request.requester_phone,
-                    facilities: request.facilities_needed || [],
-                    supplies: {
-                        food: 'adequate',
-                        water: 'adequate',
-                        medicine: 'adequate'
-                    }
+                    status: 'Active',
+                    contact_person: request.requester_name,
+                    contact_number: request.requester_phone,
+                    facilities: request.facilities_needed || []
                 });
 
             if (campError) throw campError;
@@ -190,8 +186,8 @@ function AdminReviewRequests() {
                             key={status}
                             onClick={() => setFilter(status)}
                             className={`px-4 py-2 rounded-lg font-medium capitalize transition-colors ${filter === status
-                                    ? 'bg-gray-800 text-white'
-                                    : 'bg-white text-gray-700 hover:bg-gray-100'
+                                ? 'bg-gray-800 text-white'
+                                : 'bg-white text-gray-700 hover:bg-gray-100'
                                 }`}
                         >
                             {status}
