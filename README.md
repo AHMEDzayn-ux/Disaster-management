@@ -1,309 +1,272 @@
 # 🚨 Disaster Management Platform - Sri Lanka
 
-A comprehensive web-based disaster management system for Sri Lanka, enabling efficient coordination of emergency response, resource management, and community support during disasters.
+<div align="center">
 
-## 🎯 Features
+![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+![React](https://img.shields.io/badge/React-19.2.0-61dafb.svg)
+![Supabase](https://img.shields.io/badge/Supabase-BaaS-3ECF8E.svg)
+![Status](https://img.shields.io/badge/status-Production%20Ready-success.svg)
 
-### Core Modules
+**A comprehensive web-based disaster management system for Sri Lanka**
 
-1. **Missing Person Reporting** - Report and track missing individuals during disasters
-2. **Disaster Reporting** - Submit and monitor disaster incidents with location data
-3. **Animal Rescue** - Coordinate rescue operations for animals in distress
-4. **Camp Management** - Manage relief camps, supplies, and facilities
-5. **Volunteer Registration** - Register and coordinate volunteer groups
-6. **Donation Facilitation** - Enable monetary and material donations
-7. **Emergency Contacts** - Quick access to emergency services
-8. **SMS Reporting** - AI-powered SMS processing for network-challenged areas
+[Live Demo](#) • [Documentation](docs/DOCUMENTATION.md) • [API Reference](docs/API_REFERENCE.md) • [User Guide](docs/USER_GUIDE.md)
+
+</div>
+
+---
+
+## 🌟 Overview
+
+The **Disaster Management Platform** enables efficient coordination of emergency response, resource management, and community support during disasters such as floods, landslides, tsunamis, and other natural calamities in Sri Lanka.
+
+### Key Features
+
+| Feature | Description |
+|---------|-------------|
+| 🔴 **Missing Persons** | Report and track missing individuals |
+| 🌊 **Disaster Reporting** | Submit incidents with location data |
+| 🐾 **Animal Rescue** | Coordinate animal rescue operations |
+| 🏕️ **Camp Management** | Manage relief camps and resources |
+| 🤝 **Volunteer Registration** | Register and coordinate volunteers |
+| 💰 **Donations** | Secure payment processing via Stripe |
+| 📞 **Emergency Contacts** | Quick access to emergency services |
+| 🛡️ **Admin Dashboard** | Comprehensive management panel |
+
+### Advanced Capabilities
+
+- ⚡ **Real-time Updates** - Live data synchronization
+- 🗺️ **Interactive Maps** - Location picking with Leaflet
+- 👥 **Role-based Access** - Separate interfaces for reporters, responders, and admins
+- 🔐 **Secure Authentication** - Supabase Auth integration
+- 📱 **Responsive Design** - Mobile-friendly interface
+- 🚀 **Code Splitting** - Optimized lazy loading
+
+---
+
+## 📚 Documentation
+
+| Document | Description |
+|----------|-------------|
+| [📖 Full Documentation](docs/DOCUMENTATION.md) | Complete project overview and architecture |
+| [🔧 API Reference](docs/API_REFERENCE.md) | Service layer and database operations |
+| [📱 User Guide](docs/USER_GUIDE.md) | Guide for reporters, responders, and admins |
+| [👨‍💻 Developer Guide](docs/DEVELOPER_GUIDE.md) | Technical guide for contributors |
+| [🗄️ Supabase Setup](SUPABASE_SETUP.md) | Database configuration guide |
+| [💳 Stripe Setup](STRIPE_SETUP_GUIDE.md) | Payment integration guide |
+| [🚀 Deployment](DEPLOYMENT.md) | AWS Amplify deployment guide |
+| [🔒 Security Audit](SECURITY_AUDIT_REPORT.md) | Security implementation report |
+
+---
 
 ## 🛠️ Tech Stack
 
 ### Frontend
-
-- **React 19** - UI framework
+- **React 19** - UI Framework
 - **React Router DOM 7** - Client-side routing
-- **Tailwind CSS** - Utility-first CSS framework
-- **React Hook Form** - Form validation and handling
-- **Zustand** - Lightweight state management
-- **Axios** - HTTP client for API requests
-- **Vite** - Build tool and dev server
+- **Tailwind CSS 3** - Utility-first styling
+- **React Hook Form** - Form validation
+- **Zustand** - State management
+- **Framer Motion** - Animations
+- **Leaflet** - Interactive maps
+- **Vite** - Build tool
 
-### Development Tools
+### Backend & Services
+- **Supabase** - Backend as a Service
+- **PostgreSQL** - Database
+- **Stripe** - Payment processing
+- **AWS Amplify** - Hosting
 
-- **ESLint** - Code quality and consistency
-- **PostCSS** - CSS processing
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Node.js 18+
+- npm or yarn
+- Supabase account (free tier)
+- Stripe account (for donations)
+
+### Installation
+
+```bash
+# Clone repository
+git clone https://github.com/your-username/Disaster-management.git
+cd Disaster-management
+
+# Install dependencies
+npm install
+
+# Configure environment
+cp .env.example .env
+# Edit .env with your keys
+
+# Start development server
+npm run dev
+```
+
+### Environment Variables
+
+```env
+# Supabase
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your_anon_key
+
+# Stripe (optional)
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_key
+```
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run preview` | Preview production build |
+| `npm run lint` | Run ESLint |
+
+---
 
 ## 📁 Project Structure
 
 ```
-src/
-├── components/          # Reusable UI components
-│   └── Navbar.jsx      # Navigation bar
-├── pages/              # Page components for each route
-│   ├── Dashboard.jsx
-│   ├── MissingPersons.jsx
-│   ├── DisasterReports.jsx
-│   ├── AnimalRescue.jsx
-│   ├── CampManagement.jsx
-│   ├── Volunteers.jsx
-│   ├── Donations.jsx
-│   └── EmergencyContacts.jsx
-├── services/           # API and external services
-│   └── api.js         # Axios configuration and API endpoints
-├── store/             # Zustand state management
-│   └── index.js       # Global stores
-├── hooks/             # Custom React hooks (create as needed)
-├── utils/             # Utility functions (create as needed)
-├── App.jsx            # Main app component with routing
-└── main.jsx           # App entry point
+Disaster-management/
+├── docs/                      # 📚 Documentation
+│   ├── DOCUMENTATION.md       # Main documentation
+│   ├── API_REFERENCE.md       # API reference
+│   ├── USER_GUIDE.md          # User guide
+│   └── DEVELOPER_GUIDE.md     # Developer guide
+│
+├── src/
+│   ├── components/            # 🧩 Reusable components
+│   ├── pages/                 # 📄 Page components
+│   ├── services/              # 🔌 API services
+│   ├── store/                 # 📦 Zustand stores
+│   ├── contexts/              # 🔐 React contexts
+│   ├── config/                # ⚙️ Configuration
+│   └── utils/                 # 🛠️ Utilities
+│
+├── supabase/                  # 🗄️ Supabase config
+│   ├── functions/             # Edge functions
+│   └── migrations/            # DB migrations
+│
+└── public/                    # 📁 Static assets
 ```
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Node.js 18+ installed
-- npm or yarn package manager
-- Git
-
-### Installation
-
-1. **Clone the repository**
-
-   ```bash
-   git clone <your-repo-url>
-   cd Disaster-management
-   ```
-
-2. **Install dependencies**
-
-   ```bash
-   npm install
-   ```
-
-3. **Set up environment variables**
-
-   ```bash
-   cp .env.example .env
-   # Edit .env with your API keys and configuration
-   ```
-
-4. **Start development server**
-
-   ```bash
-   npm run dev
-   ```
-
-5. **Open browser**
-   - Navigate to `http://localhost:5173`
-
-### Available Scripts
-
-```bash
-npm run dev          # Start development server
-npm run build        # Build for production
-npm run preview      # Preview production build
-npm run lint         # Run ESLint
-```
-
-## 🎨 Tailwind CSS Usage
-
-We've created custom utility classes in index.css:
-
-```jsx
-// Buttons
-<button className="btn-primary">Primary Action</button>
-<button className="btn-danger">Delete</button>
-<button className="btn-success">Success</button>
-
-// Cards
-<div className="card">Content here</div>
-
-// Input Fields
-<input className="input-field" />
-```
-
-## 📦 State Management (Zustand)
-
-Example usage of global stores:
-
-```jsx
-import { useMissingPersonStore } from "./store";
-
-function MyComponent() {
-  const { missingPersons, addMissingPerson } = useMissingPersonStore();
-
-  const handleSubmit = (data) => {
-    addMissingPerson(data);
-  };
-
-  return <div>{/* Your component */}</div>;
-}
-```
-
-## 🔌 API Integration
-
-Example API call:
-
-```jsx
-import { missingPersonsAPI } from "./services/api";
-
-// Fetch all missing persons
-const response = await missingPersonsAPI.getAll();
-
-// Create new report
-const newReport = await missingPersonsAPI.create({
-  name: "John Doe",
-  age: 35,
-  location: "Colombo",
-});
-```
-
-## 📝 Form Handling (React Hook Form)
-
-Example form with validation:
-
-```jsx
-import { useForm } from "react-hook-form";
-
-function MyForm() {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm();
-
-  const onSubmit = (data) => {
-    console.log(data);
-  };
-
-  return (
-    <form onSubmit={handleSubmit(onSubmit)}>
-      <input
-        {...register("name", { required: "Name is required" })}
-        className="input-field"
-      />
-      {errors.name && (
-        <span className="text-red-500">{errors.name.message}</span>
-      )}
-
-      <button type="submit" className="btn-primary">
-        Submit
-      </button>
-    </form>
-  );
-}
-```
-
-## 👥 Team Development Workflow
-
-### Branch Strategy
-
-```bash
-main              # Production-ready code
-├── develop       # Integration branch
-├── feature/missing-persons
-├── feature/disaster-reports
-└── feature/sms-integration
-```
-
-### Recommended Division of Work
-
-**Person 1: Frontend Core**
-
-- Missing Person module
-- Disaster Reports module
-- Shared components
-
-**Person 2: Frontend Features**
-
-- Animal Rescue
-- Volunteer Registration
-- Donation pages
-
-**Person 3: Integration & Backend**
-
-- Camp Management
-- Emergency Contacts
-- SMS AI integration
-- Backend API development
-
-### Daily Sync
-
-- Share progress and blockers
-- Review and merge PRs
-- Plan next tasks
-
-## 🔮 Next Steps
-
-### Phase 1: MVP (Week 1-2)
-
-- [ ] Implement Missing Person form with React Hook Form
-- [ ] Build Disaster Report submission
-- [ ] Create Emergency Contacts database
-- [ ] Set up basic backend (Firebase/Node.js)
-
-### Phase 2: Advanced Features (Week 3-4)
-
-- [ ] Add map integration (Leaflet/Google Maps)
-- [ ] Implement image upload for reports
-- [ ] Build Volunteer registration system
-- [ ] Create Camp management dashboard
-
-### Phase 3: SMS & AI (Week 5-6)
-
-- [ ] Integrate SMS gateway (Twilio/Dialog)
-- [ ] Build AI processing pipeline (OpenAI/Hugging Face)
-- [ ] Create admin approval workflow
-- [ ] Add real-time notifications
-
-### Phase 4: Polish & Deploy (Week 7-8)
-
-- [ ] Implement authentication (Firebase Auth/JWT)
-- [ ] Add payment integration (PayHere/Stripe)
-- [ ] Performance optimization
-- [ ] Deploy to production
-
-## 🌐 Deployment
-
-### Frontend Deployment Options
-
-- **Vercel** (Recommended) - Zero config for Vite
-- **Netlify** - Easy deployment
-- **GitHub Pages** - Free hosting
-
-### Backend Deployment Options
-
-- **Firebase** (Easiest for beginners)
-- **Railway** (Simple Node.js hosting)
-- **Render** (Free tier available)
-- **AWS/Azure** (More advanced)
-
-## 📚 Learning Resources
-
-### React Basics
-
-- [React Official Docs](https://react.dev/)
-- [React Hook Form Docs](https://react-hook-form.com/)
-- [Zustand Guide](https://zustand-demo.pmnd.rs/)
-
-### Tailwind CSS
-
-- [Tailwind Documentation](https://tailwindcss.com/docs)
-- [Tailwind Components](https://tailwindcomponents.com/)
-
-### Backend Development
-
-- [Firebase Quickstart](https://firebase.google.com/docs/web/setup)
-- [Express.js Guide](https://expressjs.com/)
-
-## 🆘 Support
-
-For questions or issues:
-
-- Create an issue on GitHub
-- Contact team members
-- Check documentation
 
 ---
 
-**Built with ❤️ for Sri Lanka's disaster resilience**
+## 👥 User Roles
+
+### 📣 Reporter
+- Report missing persons
+- Submit disaster incidents
+- Report animal rescues
+- Request camp registration
+
+### 🤝 Responder
+- View all reports
+- Mark incidents as resolved
+- Register as volunteer
+- Make donations
+
+### 🛡️ Administrator
+- Review camp requests
+- Manage all camps
+- View analytics
+- Full system access
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────┐
+│           Frontend (React)               │
+│   Components → Stores → Services         │
+└─────────────────────────────────────────┘
+                    │
+                    ▼
+┌─────────────────────────────────────────┐
+│           Supabase (Backend)             │
+│   Database │ Auth │ Storage │ Realtime   │
+└─────────────────────────────────────────┘
+                    │
+                    ▼
+┌─────────────────────────────────────────┐
+│          External Services               │
+│      Stripe │ Leaflet │ AWS Amplify      │
+└─────────────────────────────────────────┘
+```
+
+---
+
+## 🗄️ Database Tables
+
+| Table | Description |
+|-------|-------------|
+| `missing_persons` | Missing person reports |
+| `disasters` | Disaster incident reports |
+| `animal_rescues` | Animal rescue cases |
+| `camps` | Relief camp registry |
+| `camp_requests` | Camp registration requests |
+| `donations` | Donation records |
+
+See [API Reference](docs/API_REFERENCE.md) for full schema details.
+
+---
+
+## 🔐 Security
+
+- ✅ Row Level Security (RLS) on all tables
+- ✅ Environment variables for secrets
+- ✅ Secure authentication via Supabase
+- ✅ PCI compliant payments via Stripe
+- ✅ Protected admin routes
+
+See [Security Audit Report](SECURITY_AUDIT_REPORT.md) for details.
+
+---
+
+## 📞 Emergency Contacts (Sri Lanka)
+
+| Service | Number |
+|---------|--------|
+| 🚔 Police Emergency | **119** |
+| 🚑 Ambulance | **110** |
+| 🚒 Fire & Rescue | **111** |
+| 🌊 Disaster Management | **117** |
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'feat: add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+See [Developer Guide](docs/DEVELOPER_GUIDE.md) for detailed contribution guidelines.
+
+---
+
+## 📄 License
+
+This project is developed for disaster management purposes in Sri Lanka.
+
+---
+
+## 🙏 Acknowledgments
+
+- Sri Lanka Disaster Management Centre
+- Open source community
+- All contributors and volunteers
+
+---
+
+<div align="center">
+
+**Made with ❤️ for Sri Lanka**
+
+[⬆ Back to Top](#-disaster-management-platform---sri-lanka)
+
+</div>

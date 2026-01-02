@@ -448,17 +448,18 @@ function DisasterReportsList({ role = 'responder' }) {
                             </div>
                         </div>
                     </div>
+                </div>
             )}
 
-                    {filteredDisasters.length === 0 && (
-                        <div className="card text-center py-12">
-                            <p className="text-gray-500 text-lg">No disaster reports found matching your criteria</p>
-                        </div>
-                    )}
-
-                    <ScrollToTop />
+            {filteredDisasters.length === 0 && (
+                <div className="card text-center py-12">
+                    <p className="text-gray-500 text-lg">No disaster reports found matching your criteria</p>
                 </div>
-            );
+            )}
+
+            <ScrollToTop />
+        </div>
+    );
 }
 
-            export default DisasterReportsList;
+export default DisasterReportsList;

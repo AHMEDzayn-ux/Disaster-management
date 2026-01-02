@@ -530,11 +530,12 @@ function AnimalRescueList({ role = 'responder' }) {
                             </div>
                         </div>
                     </div>
+                </div>
             )}
 
-                    <ScrollToTop />
-                </div>
-            );
+            <ScrollToTop />
+        </div>
+    );
 }
 
-            export default AnimalRescueList;
+export default AnimalRescueList;

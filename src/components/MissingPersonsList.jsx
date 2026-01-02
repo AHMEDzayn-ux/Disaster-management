@@ -484,17 +484,18 @@ function MissingPersonsList({ role = 'responder' }) {
                             </div>
                         </div>
                     </div>
+                </div>
             )}
 
-                    {filteredPersons.length === 0 && (
-                        <div className="card text-center py-12">
-                            <p className="text-gray-500 text-lg">No missing persons found matching your criteria</p>
-                        </div>
-                    )}
-
-                    <ScrollToTop />
+            {filteredPersons.length === 0 && (
+                <div className="card text-center py-12">
+                    <p className="text-gray-500 text-lg">No missing persons found matching your criteria</p>
                 </div>
-            );
+            )}
+
+            <ScrollToTop />
+        </div>
+    );
 }
 
-            export default MissingPersonsList;
+export default MissingPersonsList;
