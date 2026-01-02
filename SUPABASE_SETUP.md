@@ -231,8 +231,196 @@ npm run dev
 - ✅ **Row Level Security** - Fine-grained access control
 - ✅ **Easy setup** - No Firebase Blaze plan problems!
 
+## � SMS Reporting System Setup
+
+The SMS reporting system allows users to submit disaster reports, missing person reports, and animal rescue reports via SMS. The system uses AI (Google Gemini) to parse free-text messages and automatically categorize them.
+
+### SMS Webhook URL
+
+After deploying the edge function, your SMS gateway webhook URL will be:
+
+```
+https://<your-project-ref>.supabase.co/functions/v1/sms-report
+```
+
+Replace `<your-project-ref>` with your Supabase project reference (found in your project URL).
+
+### 1. Run the SMS Migration
+
+Run this migration to add SMS tracking columns:
+
+```sql
+-- Add to SQL Editor and run
+ALTER TABLE disasters ADD COLUMN IF NOT EXISTS reported_via_sms BOOLEAN DEFAULT FALSE;
+ALTER TABLE disasters ADD COLUMN IF NOT EXISTS sms_sender_phone TEXT;
+
+ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS reported_via_sms BOOLEAN DEFAULT FALSE;
+ALTER TABLE missing_persons ADD COLUMN IF NOT EXISTS sms_sender_phone TEXT;
+
+ALTER TABLE animal_rescues ADD COLUMN IF NOT EXISTS reported_via_sms BOOLEAN DEFAULT FALSE;
+ALTER TABLE animal_rescues ADD COLUMN IF NOT EXISTS sms_sender_phone TEXT;
+```
+
+Or run the migration file: `supabase/migrations/20260101000000_add_reported_via_sms_column.sql`
+
+### 2. Set Up Gemini API Key
+
+1. Go to [Google AI Studio](https://aistudio.google.com/apikey)
+2. Sign in with your Google account
+3. Click "Create API Key"
+4. Copy the API key
+
+### 3. Configure Edge Function Secrets
+
+In your Supabase project dashboard:
+
+1. Go to **Project Settings** → **Edge Functions**
+2. Click **Manage Secrets**
+3. Add a new secret:
+   - **Name**: `GEMINI_API_KEY`
+   - **Value**: Your Gemini API key from step 2
+
+### 4. Deploy the Edge Function
+
+Using Supabase CLI:
+
+```bash
+# Install Supabase CLI if not already installed
+npm install -g supabase
+
+# Login to Supabase
+supabase login
+
+# Link to your project
+supabase link --project-ref <your-project-ref>
+
+# Deploy the SMS function
+supabase functions deploy sms-report
+```
+
+### 5. Configure Android SMS Gateway
+
+In your Android SMS Gateway app, set up the webhook:
+
+1. **Webhook URL**: `https://<your-project-ref>.supabase.co/functions/v1/sms-report`
+2. **Method**: POST
+3. **Content-Type**: application/json
+4. **Payload Format**: The function accepts these field names:
+   ```json
+   {
+     "from": "+1234567890", // or "phone" or "sender"
+     "message": "SMS text...", // or "text" or "body"
+     "sentStamp": 1704067200000,
+     "receivedStamp": 1704067200000
+   }
+   ```
+
+### 6. Test the SMS System
+
+Send a test SMS to your gateway number:
+
+**Example messages:**
+
+1. **Disaster Report**:
+
+   ```
+   Flood in Kochi near MG Road. Water level rising fast. About 50 families affected. Need rescue boats. My name is Rahul, contact 9876543210
+   ```
+
+2. **Missing Person**:
+
+   ```
+   My father John aged 65 is missing since yesterday from Trivandrum Central. He has gray hair and was wearing a blue shirt. Please help. Contact Mary 9123456789
+   ```
+
+3. **Animal Rescue**:
+   ```
+   Dog stuck on rooftop at Ernakulam South. Building is flooded. Dog looks injured. Please send help. Arun 8765432109
+   ```
+
+### 7. Response Format
+
+The webhook returns a JSON response that includes a `reply` field for sending confirmation SMS back:
+
+```json
+{
+  "success": true,
+  "category": "disaster",
+  "confidence": 0.95,
+  "record_id": "uuid-here",
+  "table": "disasters",
+  "reply": "Your disaster report has been received. Reference ID: ABC12345. Our team will respond soon.",
+  "extracted_data": { ... }
+}
+```
+
+Configure your Android Gateway to send the `reply` message back to the sender.
+
+### 8. Error Handling
+
+If the AI cannot parse the message, the response will include an error and a helpful reply:
+
+```json
+{
+  "error": "Could not parse message",
+  "reply": "We could not understand your message. Please try again with more details about the emergency, location, and your name."
+}
+```
+
+### 9. Optional: SMS Processing Logs Table
+
+Create this table to track SMS processing for debugging:
+
+```sql
+CREATE TABLE sms_processing_logs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  sender_phone TEXT NOT NULL,
+  raw_message TEXT NOT NULL,
+  detected_category TEXT,
+  processing_success BOOLEAN DEFAULT FALSE,
+  created_record_id UUID,
+  error_message TEXT,
+  processed_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE sms_processing_logs ENABLE ROW LEVEL SECURITY;
+
+-- Only service role can access logs
+CREATE POLICY "Service role can manage logs" ON sms_processing_logs
+  FOR ALL USING (auth.role() = 'service_role');
+```
+
+### SMS System Architecture
+
+```
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│   User's Phone  │────▶│  Android Gateway │────▶│  Supabase Edge  │
+│   (SMS)         │     │  App             │     │  Function       │
+└─────────────────┘     └──────────────────┘     └────────┬────────┘
+                                                          │
+                        ┌─────────────────────────────────┼─────────────────────────────────┐
+                        │                                 │                                 │
+                        ▼                                 ▼                                 ▼
+               ┌─────────────────┐              ┌─────────────────┐              ┌─────────────────┐
+               │  Gemini AI      │              │  OpenStreetMap  │              │  Supabase DB    │
+               │  (Parse SMS)    │              │  (Geocoding)    │              │  (Store Report) │
+               └─────────────────┘              └─────────────────┘              └─────────────────┘
+                        │                                                                  │
+                        └────────────────────────────────┬─────────────────────────────────┘
+                                                         │
+                                                         ▼
+                                                ┌─────────────────┐
+                                                │ Confirmation SMS │
+                                                │ (via Gateway)    │
+                                                └─────────────────┘
+```
+
 ## 📚 Resources
 
 - [Supabase Documentation](https://supabase.com/docs)
 - [Supabase Storage Guide](https://supabase.com/docs/guides/storage)
 - [Supabase Realtime](https://supabase.com/docs/guides/realtime)
+- [Supabase Edge Functions](https://supabase.com/docs/guides/functions)
+- [Google Gemini API](https://ai.google.dev/docs)
+- [OpenStreetMap Nominatim](https://nominatim.org/release-docs/latest/api/Search/)

@@ -440,53 +440,63 @@ function AnimalRescueList({ role = 'responder' }) {
                                 disableClusteringAtZoom={9}
                                 removeOutsideVisibleBounds={false}
                             >
-                                {filteredRescues.filter(r => r.location && r.location.lat && r.location.lng).map((rescue) => (
-                                    <Marker
-                                        key={rescue.id}
-                                        position={[rescue.location.lat, rescue.location.lng]}
-                                        icon={rescue.status === 'Active' ? activeIcon : resolvedIcon}
-                                    >
-                                        <Popup maxWidth={220} offset={[0, -10]}>
-                                            <div className="p-1">
-                                                <LazyImage
-                                                    src={rescue.photo}
-                                                    alt={rescue.animalType}
-                                                    className="w-full h-24 rounded mb-2"
-                                                    aspectRatio="16/9"
-                                                />
-                                                <h3 className="font-bold text-sm capitalize mb-1">
-                                                    {getAnimalTypeIcon(rescue.animalType)} {rescue.animalType}
-                                                    {rescue.breed && <span className="text-xs font-normal"> ({rescue.breed})</span>}
-                                                </h3>
-                                                <div className="mb-2">
-                                                    <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${getStatusBadge(rescue.status).className}`}>
-                                                        {getStatusBadge(rescue.status).text}
-                                                    </span>
-                                                    {rescue.isDangerous && (
-                                                        <span className="inline-block px-1 py-0.5 rounded text-xs font-semibold bg-danger-600 text-white ml-1">
-                                                            ⚠️
+                                {filteredRescues.filter(r => r.location && r.location.lat && r.location.lng).map((rescue) => {
+                                    // Extra safety check
+                                    if (!rescue.location || !rescue.location.lat || !rescue.location.lng) {
+                                        return null;
+                                    }
+
+                                    return (
+                                        <Marker
+                                            key={rescue.id}
+                                            position={[rescue.location.lat, rescue.location.lng]}
+                                            icon={rescue.status === 'Active' ? activeIcon : resolvedIcon}
+                                        >
+                                            <Popup maxWidth={220} offset={[0, -10]}>
+                                                <div className="p-1">
+                                                    <LazyImage
+                                                        src={rescue.photo}
+                                                        alt={rescue.animalType}
+                                                        className="w-full h-24 rounded mb-2"
+                                                        aspectRatio="16/9"
+                                                    />
+                                                    <h3 className="font-bold text-sm capitalize mb-1">
+                                                        {getAnimalTypeIcon(rescue.animalType)} {rescue.animalType}
+                                                        {rescue.breed && <span className="text-xs font-normal"> ({rescue.breed})</span>}
+                                                    </h3>
+                                                    <div className="mb-2">
+                                                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${getStatusBadge(rescue.status).className}`}>
+                                                            {getStatusBadge(rescue.status).text}
                                                         </span>
-                                                    )}
+                                                        {rescue.isDangerous && (
+                                                            <span className="inline-block px-1 py-0.5 rounded text-xs font-semibold bg-danger-600 text-white ml-1">
+                                                                ⚠️
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-xs text-gray-600 mb-1">📍 {rescue.location.address}</p>
+                                                    <p className="text-xs text-gray-600 mb-1">👤 {rescue.reporterName}</p>
+                                                    <p className="text-xs text-gray-600 mb-2">☎️ {rescue.contactNumber}</p>
+                                                    <button
+                                                        onClick={() => handleRescueClick(rescue)}
+                                                        className="btn-primary w-full text-xs py-1"
+                                                    >
+                                                        View Details
+                                                    </button>
                                                 </div>
-                                                <p className="text-xs text-gray-600 mb-1">📍 {rescue.location.address}</p>
-                                                <p className="text-xs text-gray-600 mb-1">👤 {rescue.reporterName}</p>
-                                                <p className="text-xs text-gray-600 mb-2">☎️ {rescue.contactNumber}</p>
-                                                <button
-                                                    onClick={() => handleRescueClick(rescue)}
-                                                    className="btn-primary w-full text-xs py-1"
-                                                >
-                                                    View Details
-                                                </button>
-                                            </div>
-                                        </Popup>
-                                    </Marker>
-                                ))}
+                                            </Popup>
+                                        </Marker>
+                                    );
+                                }).filter(Boolean)}
                             </MarkerClusterGroup>
                         </MapContainer>
                     </div>
 
                     {/* Map Legend */}
                     <div className="p-4 bg-gray-50 border-t border-gray-200">
+                        <p className="text-sm text-gray-600 mb-3">
+                            <span className="font-medium">ℹ️ Note:</span> Records without valid coordinates are not displayed on the map. Switch to Card View to see all reports.
+                        </p>
                         <div className="flex flex-wrap gap-4 items-center justify-center">
                             <div className="flex items-center gap-2">
                                 <div className="w-6 h-6 bg-danger-500 rounded-full"></div>

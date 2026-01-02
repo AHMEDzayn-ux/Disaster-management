@@ -388,6 +388,12 @@ function MissingPersonsList({ role = 'responder' }) {
                             }).map((person) => {
                                 const location = person.last_seen_location || person.lastSeenLocation;
                                 const lastSeenDate = person.last_seen_date || person.lastSeenDate;
+
+                                // Extra safety check
+                                if (!location || !location.lat || !location.lng) {
+                                    return null;
+                                }
+
                                 return (
                                     <Marker
                                         key={person.id}
@@ -436,22 +442,30 @@ function MissingPersonsList({ role = 'responder' }) {
                                         </Popup>
                                     </Marker>
                                 );
-                            })}
+                            }).filter(Boolean)}
                         </MarkerClusterGroup>
                     </MapContainer>
 
-                    {/* Map Legend */}
-                    <div className="mt-2 flex justify-center gap-4 text-sm">
-                        <div className="flex items-center gap-2">
-                            <span className="text-danger-600">🔴</span>
-                            <span>Active ({filteredPersons.filter(p => p.status === 'Active').length})</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-success-600">🟢</span>
-                            <span>Resolved ({filteredPersons.filter(p => p.status === 'Resolved').length})</span>
-                        </div>
-                        <div className="text-gray-600">
-                            Total: {filteredPersons.length} on map
+                    {/* Map Legend and Info */}
+                    <div className="mt-2">
+                        <p className="text-sm text-gray-600 mb-2 text-center">
+                            <span className="font-medium">ℹ️ Note:</span> Records without valid coordinates are not displayed on the map. Switch to Card View to see all reports.
+                        </p>
+                        <div className="flex justify-center gap-4 text-sm">
+                            <div className="flex items-center gap-2">
+                                <span className="text-danger-600">🔴</span>
+                                <span>Active ({filteredPersons.filter(p => p.status === 'Active').length})</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-success-600">🟢</span>
+                                <span>Resolved ({filteredPersons.filter(p => p.status === 'Resolved').length})</span>
+                            </div>
+                            <div className="text-gray-600">
+                                Total: {filteredPersons.filter(p => {
+                                    const location = p.last_seen_location || p.lastSeenLocation;
+                                    return location && location.lat && location.lng;
+                                }).length} on map
+                            </div>
                         </div>
                     </div>
                 </div>

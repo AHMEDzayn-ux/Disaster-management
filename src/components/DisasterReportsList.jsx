@@ -380,6 +380,11 @@ function DisasterReportsList({ role = 'responder' }) {
                                     const reporterName = disaster.reporter_name || disaster.reporterName;
                                     const contactNumber = disaster.contact_number || disaster.contactNumber;
 
+                                    // Extra safety check
+                                    if (!disaster.location || !disaster.location.lat || !disaster.location.lng) {
+                                        return null;
+                                    }
+
                                     return (
                                         <Marker
                                             key={disaster.id}
@@ -407,12 +412,15 @@ function DisasterReportsList({ role = 'responder' }) {
                                             </Popup>
                                         </Marker>
                                     );
-                                })}
+                                }).filter(Boolean)}
                             </MarkerClusterGroup>
                         </MapContainer>
                     </div>
 
                     <div className="p-4 bg-gray-50 border-t border-gray-200">
+                        <p className="text-sm text-gray-600 mb-3">
+                            <span className="font-medium">ℹ️ Note:</span> Records without valid coordinates are not displayed on the map. Switch to Card View to see all reports.
+                        </p>
                         <div className="flex flex-wrap gap-4 items-center justify-center">
                             <div className="flex items-center gap-2">
                                 <div className="w-6 h-6 bg-danger-500 rounded-full"></div>
@@ -424,6 +432,12 @@ function DisasterReportsList({ role = 'responder' }) {
                             </div>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {filteredDisasters.length === 0 && (
+                <div className="card text-center py-12">
+                    <p className="text-gray-500 text-lg">No disaster reports found matching your criteria</p>
                 </div>
             )}
 

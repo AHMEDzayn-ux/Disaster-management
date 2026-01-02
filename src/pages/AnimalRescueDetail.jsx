@@ -240,26 +240,35 @@ function AnimalRescueDetail({ role: propRole }) {
                                 </p>
                             )}
                         </div>
-                        <div style={{ height: '400px' }} className="rounded-lg overflow-hidden border-2 border-gray-200">
-                            <MapContainer
-                                center={[rescue.location.lat, rescue.location.lng]}
-                                zoom={15}
-                                style={{ height: '100%', width: '100%' }}
-                            >
-                                <TileLayer
-                                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                />
-                                <Marker position={[rescue.location.lat, rescue.location.lng]}>
-                                    <Popup>
-                                        <div className="p-2">
-                                            <p className="font-bold capitalize">{rescue.animalType} spotted here</p>
-                                            <p className="text-sm text-gray-600">{rescue.location.address}</p>
-                                        </div>
-                                    </Popup>
-                                </Marker>
-                            </MapContainer>
-                        </div>
+                        {rescue.location?.lat && rescue.location?.lng && (
+                            <div style={{ height: '400px' }} className="rounded-lg overflow-hidden border-2 border-gray-200">
+                                <MapContainer
+                                    center={[rescue.location.lat, rescue.location.lng]}
+                                    zoom={15}
+                                    style={{ height: '100%', width: '100%' }}
+                                >
+                                    <TileLayer
+                                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                    />
+                                    <Marker position={[rescue.location.lat, rescue.location.lng]}>
+                                        <Popup>
+                                            <div className="p-2">
+                                                <p className="font-bold capitalize">{rescue.animalType} spotted here</p>
+                                                <p className="text-sm text-gray-600">{rescue.location.address}</p>
+                                            </div>
+                                        </Popup>
+                                    </Marker>
+                                </MapContainer>
+                            </div>
+                        )}
+                        {!rescue.location?.lat || !rescue.location?.lng && (
+                            <div className="p-4 bg-gray-100 rounded-lg border-2 border-gray-200">
+                                <p className="text-gray-600 text-center">
+                                    <span className="font-medium">ℹ️ Location coordinates not available</span>
+                                </p>
+                            </div>
+                        )}
                     </div>
 
                     {/* Status Timeline */}
