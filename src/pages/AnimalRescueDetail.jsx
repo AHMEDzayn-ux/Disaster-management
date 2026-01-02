@@ -25,8 +25,39 @@ function AnimalRescueDetail({ role: propRole }) {
 
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
     const [foundContact, setFoundContact] = useState('');
+    const [weather, setWeather] = useState(null);
+    const [weatherLoading, setWeatherLoading] = useState(false);
 
     const rescue = animalRescues.find(r => r.id === id || r.id === parseInt(id));
+
+    // Handle both snake_case (database) and camelCase (legacy) field names
+    const animalType = rescue?.animal_type || rescue?.animalType;
+    const reporterName = rescue?.reporter_name || rescue?.reporterName;
+    const contactNumber = rescue?.contact_number || rescue?.contactNumber;
+    const reportedAt = rescue?.reported_at || rescue?.reportedAt || rescue?.created_at;
+    const spottedDate = rescue?.spotted_date || rescue?.spottedDate;
+    const foundAt = rescue?.found_at || rescue?.foundAt;
+    const foundByContact = rescue?.found_by_contact || rescue?.foundByContact;
+    const isDangerous = rescue?.is_dangerous || rescue?.isDangerous;
+    const dangerDetails = rescue?.danger_details || rescue?.dangerDetails;
+    const healthDetails = rescue?.health_details || rescue?.healthDetails;
+
+    // Fetch weather data
+    useEffect(() => {
+        if (rescue?.location?.lat && rescue?.location?.lng) {
+            setWeatherLoading(true);
+            fetch(`https://api.open-meteo.com/v1/forecast?latitude=${rescue.location.lat}&longitude=${rescue.location.lng}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=auto`)
+                .then(res => res.json())
+                .then(data => {
+                    setWeather(data.current);
+                    setWeatherLoading(false);
+                })
+                .catch(err => {
+                    console.error('Weather fetch error:', err);
+                    setWeatherLoading(false);
+                });
+        }
+    }, [rescue?.location?.lat, rescue?.location?.lng]);
 
     // Show loading while data is being fetched
     if (!isInitialized) {
@@ -69,26 +100,21 @@ function AnimalRescueDetail({ role: propRole }) {
     };
 
     const getStatusBadge = (status) => {
-        switch (status) {
-            case 'Active':
-                return <span className="px-3 py-1 rounded-full text-sm font-semibold bg-danger-100 text-danger-700">🔴 Active - Needs Rescue</span>;
-            case 'Resolved':
-                return <span className="px-3 py-1 rounded-full text-sm font-semibold bg-success-100 text-success-700">✅ Resolved - Animal Rescued</span>;
-            default:
-                return <span className="px-3 py-1 rounded-full text-sm font-semibold bg-gray-100 text-gray-700">{status}</span>;
-        }
+        return status === 'Active'
+            ? <span className="px-3 py-1.5 rounded text-sm font-semibold bg-danger-100 text-danger-700">🔴 Active</span>
+            : <span className="px-3 py-1.5 rounded text-sm font-semibold bg-success-100 text-success-700">✅ Rescued</span>
     };
 
     const getConditionBadge = (condition) => {
         const badges = {
-            'critical': { className: 'bg-danger-600 text-white', text: '🚨 Critical Condition' },
+            'critical': { className: 'bg-danger-600 text-white', text: '🚨 Critical' },
             'injured': { className: 'bg-warning-600 text-white', text: '🩹 Injured' },
             'trapped': { className: 'bg-warning-500 text-white', text: '🔒 Trapped' },
-            'sick': { className: 'bg-warning-400 text-gray-900', text: '🤒 Sick/Weak' },
-            'healthy': { className: 'bg-info-500 text-white', text: '✓ Healthy/Unharmed' },
+            'sick': { className: 'bg-warning-400 text-gray-900', text: '🤒 Sick' },
+            'healthy': { className: 'bg-info-500 text-white', text: '✓ Healthy' },
         };
         const badge = badges[condition] || { className: 'bg-gray-500 text-white', text: condition };
-        return <span className={`px-3 py-1 rounded-full text-sm font-semibold ${badge.className}`}>{badge.text}</span>;
+        return <span className={`px-3 py-1.5 rounded text-sm font-semibold ${badge.className}`}>{badge.text}</span>;
     };
 
     const getAnimalTypeIcon = (animalType) => {
@@ -104,301 +130,273 @@ function AnimalRescueDetail({ role: propRole }) {
         return icons[animalType] || '🐾';
     };
 
-    const handleMarkRescued = () => {
-        setShowConfirmDialog(true);
+    const getWeatherDescription = (code) => {
+        const weatherCodes = {
+            0: 'Clear', 1: 'Mainly Clear', 2: 'Partly Cloudy', 3: 'Overcast',
+            45: 'Foggy', 48: 'Foggy', 51: 'Light Drizzle', 53: 'Drizzle', 55: 'Heavy Drizzle',
+            61: 'Light Rain', 63: 'Rain', 65: 'Heavy Rain', 71: 'Light Snow', 73: 'Snow', 75: 'Heavy Snow',
+            80: 'Rain Showers', 81: 'Rain Showers', 82: 'Heavy Rain Showers', 95: 'Thunderstorm', 96: 'Thunderstorm', 99: 'Thunderstorm'
+        };
+        return weatherCodes[code] || 'Unknown';
     };
 
-    const confirmMarkRescued = () => {
-        markFoundByResponder(rescue.id, foundContact || null);
-        setShowConfirmDialog(false);
-        setFoundContact('');
+    const handleMarkRescued = () => setShowConfirmDialog(true);
+
+    const confirmMarkRescued = async () => {
+        try {
+            await markFoundByResponder(rescue.id, foundContact || null);
+            setShowConfirmDialog(false);
+            setFoundContact('');
+        } catch (error) {
+            console.error('Error marking animal as rescued:', error);
+            alert('Failed to mark animal as rescued. Please try again.');
+        }
     };
 
     const canMarkRescued = role === 'responder' && rescue.status === 'Active';
 
     return (
-        <div className="container mx-auto px-4 py-6">
-            {/* Header */}
-            <div className="mb-6">
-                <button onClick={() => navigate(-1)} className="text-primary-600 hover:text-primary-700 mb-4 flex items-center gap-2">
-                    ← Back to List
-                </button>
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="container mx-auto px-3 sm:px-4 py-3">
+            {/* Header - Single Row */}
+            <div className="mb-3">
+                <div className="flex items-center gap-3">
+                    <span className="text-3xl sm:text-4xl">{getAnimalTypeIcon(animalType)}</span>
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-800 capitalize flex items-center gap-2">
-                            {getAnimalTypeIcon(rescue.animalType)} {rescue.animalType || 'Unknown Animal'}
-                            {rescue.breed && <span className="text-xl text-gray-600">({rescue.breed})</span>}
+                        <h1 className="text-xl sm:text-2xl font-bold text-gray-800 capitalize leading-tight">
+                            {animalType?.replace('-', ' ') || 'Unknown'} {rescue.breed && <span className="text-base sm:text-lg text-gray-600">({rescue.breed})</span>} <span className="text-xs sm:text-sm text-gray-500 font-normal ml-2 sm:ml-3">ID: #{rescue.id} • {reportedAt ? formatDate(reportedAt) : 'N/A'}</span>
                         </h1>
-                        <p className="text-gray-600">Report ID: #{rescue.id} • Reported {getTimeSince(rescue.reportedAt)}</p>
                     </div>
-                    {getStatusBadge(rescue.status)}
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left Column - Photo & Animal Info */}
-                <div className="lg:col-span-1 space-y-6">
-                    {/* Photo */}
-                    <div className="card">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Photo</h3>
-                        <img
-                            src={rescue.photo}
-                            alt={rescue.animalType}
-                            className="w-full max-h-96 rounded-lg border-2 border-gray-200 shadow-md object-contain bg-gray-50"
-                            loading="lazy"
-                        />
-                    </div>
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
 
-                    {/* Animal Information */}
-                    <div className="card">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Animal Information</h3>
-                        <div className="space-y-3">
-                            <div>
-                                <p className="text-sm text-gray-500">Animal Type</p>
-                                <p className="font-medium text-gray-800 capitalize flex items-center gap-2">
-                                    {getAnimalTypeIcon(rescue.animalType)} {rescue.animalType}
-                                </p>
+                {/* Left Column - Animal Info & Contact */}
+                <div className="lg:col-span-5 space-y-3">
+
+                    {/* Condition & Key Info */}
+                    <div className="card p-5">
+                        <div className="mb-3">{getConditionBadge(rescue.condition)}</div>
+                        <div className="grid grid-cols-2 sm:grid-cols-2 gap-3 text-center">
+                            <div className="border-r border-gray-200">
+                                <p className="text-xs text-gray-500 mb-1">Type</p>
+                                <p className="text-base font-bold text-gray-800 capitalize">{animalType || 'N/A'}</p>
                             </div>
-                            {rescue.breed && (
-                                <div>
-                                    <p className="text-sm text-gray-500">Size/Breed</p>
-                                    <p className="font-medium text-gray-800">{rescue.breed}</p>
-                                </div>
-                            )}
                             <div>
-                                <p className="text-sm text-gray-500">Description</p>
-                                <p className="font-medium text-gray-800">{rescue.description}</p>
+                                <p className="text-xs text-gray-500 mb-1">Spotted</p>
+                                <p className="text-sm font-bold text-gray-800">{spottedDate ? getTimeSince(spottedDate) : 'N/A'}</p>
                             </div>
                         </div>
                     </div>
 
-                    {/* Safety Information */}
-                    <div className="card">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-4">⚠️ Safety Information</h3>
-                        <div className="space-y-3">
-                            <div>
-                                <p className="text-sm text-gray-500">Danger Level</p>
-                                {rescue.isDangerous ? (
-                                    <div className="bg-danger-50 border-l-4 border-danger-500 p-3 rounded">
-                                        <p className="font-bold text-danger-700 mb-1">⚠️ Dangerous Animal</p>
-                                        {rescue.dangerDetails && (
-                                            <p className="text-sm text-danger-600">{rescue.dangerDetails}</p>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <p className="font-medium text-success-700">✓ Not dangerous - safe to approach</p>
-                                )}
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-500">Condition</p>
-                                <div className="mt-1">
-                                    {rescue.condition && getConditionBadge(rescue.condition)}
-                                </div>
-                            </div>
-                            {rescue.healthDetails && (
-                                <div>
-                                    <p className="text-sm text-gray-500">Health Details</p>
-                                    <p className="font-medium text-gray-800">{rescue.healthDetails}</p>
-                                </div>
-                            )}
-                            {rescue.accessibility && (
-                                <div>
-                                    <p className="text-sm text-gray-500">Accessibility</p>
-                                    <p className="font-medium text-gray-800 capitalize">{rescue.accessibility} access</p>
-                                </div>
-                            )}
+                    {/* Safety Alert */}
+                    {isDangerous && (
+                        <div className="card p-5 bg-danger-50 border-danger-200">
+                            <p className="text-sm font-semibold text-danger-700 mb-2">⚠️ Dangerous Animal</p>
+                            <p className="text-sm text-danger-600 leading-relaxed">{dangerDetails || 'Exercise extreme caution when approaching'}</p>
                         </div>
+                    )}
+
+                    {/* Description */}
+                    <div className="card p-5 min-h-36">
+                        <p className="text-sm font-semibold text-gray-700 mb-3">📝 Description</p>
+                        <p className="text-sm text-gray-700 leading-relaxed">{rescue.description || 'No description provided'}</p>
                     </div>
+
+                    {/* Health Details */}
+                    {healthDetails && (
+                        <div className="card p-5">
+                            <p className="text-sm font-semibold text-gray-700 mb-3">🏥 Health Details</p>
+                            <p className="text-sm text-gray-700 leading-relaxed">{healthDetails}</p>
+                        </div>
+                    )}
+
+                    {/* Accessibility */}
+                    {rescue.accessibility && (
+                        <div className="card p-5">
+                            <p className="text-sm font-semibold text-gray-700 mb-2">🚶 Accessibility</p>
+                            <p className="text-sm text-gray-700 capitalize">{rescue.accessibility} access</p>
+                        </div>
+                    )}
 
                     {/* Reporter Contact */}
-                    <div className="card">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Reporter Contact</h3>
-                        <div className="space-y-3">
+                    <div className="card p-5">
+                        <p className="text-sm font-semibold text-gray-700 mb-2">📞 Reporter Contact</p>
+                        <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <p className="text-sm text-gray-500">Name</p>
-                                <p className="font-medium text-gray-800">{rescue.reporterName}</p>
+                                <p className="text-xs text-gray-500 mb-0.5">Name</p>
+                                <p className="text-sm font-medium text-gray-800">{reporterName || 'N/A'}</p>
                             </div>
                             <div>
-                                <p className="text-sm text-gray-500">Phone Number</p>
-                                <p className="font-medium text-gray-800">{rescue.contactNumber}</p>
+                                <p className="text-xs text-gray-500 mb-0.5">Phone</p>
+                                <p className="text-sm font-medium text-gray-800">{contactNumber || 'N/A'}</p>
                             </div>
+                        </div>
+                        {foundByContact && (
+                            <div className="mt-3 pt-3 border-t border-gray-200">
+                                <p className="text-xs text-gray-500 mb-0.5">Rescue Contact</p>
+                                <p className="text-sm font-medium text-success-700">{foundByContact}</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Timeline */}
+                    <div className="card p-5">
+                        <p className="text-sm font-semibold text-gray-700 mb-2">⏱️ Timeline</p>
+                        <div className="space-y-2">
+                            <div className="flex gap-2.5 items-start">
+                                <div className="w-7 h-7 rounded-full bg-primary-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">1</div>
+                                <div className="flex-1">
+                                    <p className="text-sm font-semibold text-gray-800">Reported</p>
+                                    <p className="text-xs text-gray-600">{reportedAt ? formatDate(reportedAt) : 'N/A'} • {reporterName || 'Anonymous'}</p>
+                                </div>
+                            </div>
+                            {foundAt && (
+                                <div className="flex gap-2.5 items-start">
+                                    <div className="w-7 h-7 rounded-full bg-success-500 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">✓</div>
+                                    <div className="flex-1">
+                                        <p className="text-sm font-semibold text-gray-800">Rescued</p>
+                                        <p className="text-xs text-gray-600">{formatDate(foundAt)}</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Status & Action Button */}
+                    <div className="card p-5">
+                        <div className="flex items-center gap-3">
+                            {getStatusBadge(rescue.status)}
+                            {canMarkRescued && (
+                                <button onClick={handleMarkRescued} className="btn-primary py-2 px-5">Mark as Rescued</button>
+                            )}
                         </div>
                     </div>
                 </div>
 
-                {/* Right Column - Location, Timeline, Actions */}
-                <div className="lg:col-span-2 space-y-6">
-                    {/* Location Map */}
-                    <div className="card">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-4">📍 Animal Location</h3>
-                        <div className="mb-3">
-                            <p className="text-gray-700">
-                                <strong>Address:</strong> {rescue.location.address}
-                            </p>
-                            {rescue.spottedDate && (
-                                <p className="text-gray-600 text-sm mt-1">
-                                    <strong>Spotted on:</strong> {formatDate(rescue.spottedDate)}
-                                </p>
-                            )}
-                        </div>
-                        {rescue.location?.lat && rescue.location?.lng && (
-                            <div style={{ height: '400px' }} className="rounded-lg overflow-hidden border-2 border-gray-200">
-                                <MapContainer
-                                    center={[rescue.location.lat, rescue.location.lng]}
-                                    zoom={15}
-                                    style={{ height: '100%', width: '100%' }}
-                                >
-                                    <TileLayer
-                                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                {/* Right Column - Photo & Map */}
+                <div className="lg:col-span-7 space-y-4">
+
+                    {/* Photo & Location Side by Side */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                        {/* Photo */}
+                        {rescue.photo && (
+                            <div className="card p-4">
+                                <p className="text-sm font-semibold text-gray-700 mb-2">📸 Photo</p>
+                                <div className="w-full h-64 rounded border border-gray-200 bg-gray-50 flex items-center justify-center">
+                                    <img
+                                        src={rescue.photo}
+                                        alt={animalType}
+                                        className="max-w-full max-h-full object-contain"
+                                        loading="lazy"
                                     />
-                                    <Marker position={[rescue.location.lat, rescue.location.lng]}>
-                                        <Popup>
-                                            <div className="p-2">
-                                                <p className="font-bold capitalize">{rescue.animalType} spotted here</p>
-                                                <p className="text-sm text-gray-600">{rescue.location.address}</p>
-                                            </div>
-                                        </Popup>
-                                    </Marker>
-                                </MapContainer>
+                                </div>
                             </div>
                         )}
-                        {!rescue.location?.lat || !rescue.location?.lng && (
-                            <div className="p-4 bg-gray-100 rounded-lg border-2 border-gray-200">
-                                <p className="text-gray-600 text-center">
-                                    <span className="font-medium">ℹ️ Location coordinates not available</span>
-                                </p>
-                            </div>
-                        )}
-                    </div>
 
-                    {/* Status Timeline */}
-                    <div className="card">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-4">📋 Status Timeline</h3>
-                        <div className="space-y-4">
-                            {/* Reported */}
-                            <div className="flex gap-4">
-                                <div className="flex flex-col items-center">
-                                    <div className="w-10 h-10 rounded-full bg-primary-500 text-white flex items-center justify-center font-bold">
-                                        1
+                        {/* Location & Weather */}
+                        <div className="card p-4">
+                            <p className="text-sm font-semibold text-gray-700 mb-2">📍 Location & Weather</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {/* Location Column */}
+                                <div className="space-y-2">
+                                    <div>
+                                        <p className="text-xs text-gray-500 mb-0.5">Address</p>
+                                        <p className="text-sm text-gray-800">{rescue.location?.address || 'N/A'}</p>
                                     </div>
-                                    {rescue.foundAt && <div className="w-0.5 h-full bg-primary-300 mt-2"></div>}
-                                </div>
-                                <div className="flex-1 pb-4">
-                                    <p className="font-semibold text-gray-800">Report Submitted</p>
-                                    <p className="text-sm text-gray-600">{formatDate(rescue.reportedAt)}</p>
-                                    <p className="text-sm text-gray-500 mt-1">
-                                        By {rescue.reporterName} • {rescue.contactNumber}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Rescued */}
-                            {rescue.foundAt && (
-                                <div className="flex gap-4">
-                                    <div className="flex flex-col items-center">
-                                        <div className="w-10 h-10 rounded-full bg-success-500 text-white flex items-center justify-center font-bold">
-                                            ✓
+                                    {spottedDate && (
+                                        <div>
+                                            <p className="text-xs text-gray-500 mb-0.5">Spotted</p>
+                                            <p className="text-sm text-gray-800">{formatDate(spottedDate)}</p>
                                         </div>
-                                    </div>
-                                    <div className="flex-1">
-                                        <p className="font-semibold text-gray-800">Animal Rescued</p>
-                                        <p className="text-sm text-gray-600">{formatDate(rescue.foundAt)}</p>
-                                        {rescue.foundByContact && (
-                                            <p className="text-sm text-gray-500 mt-1">
-                                                Contact: {rescue.foundByContact}
-                                            </p>
-                                        )}
-                                    </div>
+                                    )}
                                 </div>
-                            )}
-                        </div>
-                    </div>
 
-                    {/* Responder Actions */}
-                    {canMarkRescued && (
-                        <div className="card bg-primary-50 border-primary-200">
-                            <h3 className="text-lg font-semibold text-gray-800 mb-4">🛠️ Responder Actions</h3>
-                            <p className="text-gray-700 mb-4">
-                                Have you successfully rescued this animal? Mark it as resolved to close the case.
-                            </p>
-                            <button
-                                onClick={handleMarkRescued}
-                                className="btn-primary w-full md:w-auto"
-                            >
-                                ✓ Mark as Rescued
-                            </button>
-                        </div>
-                    )}
-
-                    {/* Resolved Notice */}
-                    {rescue.status === 'Resolved' && (
-                        <div className="card bg-success-50 border-success-200">
-                            <div className="flex items-start gap-3">
-                                <div className="text-3xl">✅</div>
-                                <div className="flex-1">
-                                    <h3 className="text-lg font-semibold text-success-800 mb-2">
-                                        Animal Successfully Rescued
-                                    </h3>
-                                    <p className="text-success-700">
-                                        This animal was rescued on {formatDate(rescue.foundAt)}
+                                {/* Weather Column */}
+                                <div>
+                                    <p className="text-xs font-semibold text-gray-700 mb-1.5 flex items-center gap-1">
+                                        <span>🌤️</span> Current Weather
                                     </p>
-                                    {rescue.foundByContact && (
-                                        <p className="text-success-600 text-sm mt-2">
-                                            Contact provided: {rescue.foundByContact}
-                                        </p>
+                                    {weatherLoading ? (
+                                        <div className="flex items-center justify-center py-3">
+                                            <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary-600 border-t-transparent"></div>
+                                            <p className="text-xs text-gray-500 ml-2">Loading...</p>
+                                        </div>
+                                    ) : weather ? (
+                                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-2 border border-blue-100">
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div className="bg-white rounded p-1.5 border border-blue-100">
+                                                    <p className="text-xs text-gray-600">🌡️ Temp</p>
+                                                    <p className="text-base font-bold text-gray-800">{weather.temperature_2m}°C</p>
+                                                </div>
+                                                <div className="bg-white rounded p-1.5 border border-blue-100">
+                                                    <p className="text-xs text-gray-600">💧 Humidity</p>
+                                                    <p className="text-base font-bold text-gray-800">{weather.relative_humidity_2m}%</p>
+                                                </div>
+                                                <div className="bg-white rounded p-1.5 border border-blue-100">
+                                                    <p className="text-xs text-gray-600">💨 Wind</p>
+                                                    <p className="text-sm font-bold text-gray-800">{weather.wind_speed_10m} km/h</p>
+                                                </div>
+                                                <div className="bg-white rounded p-1.5 border border-blue-100">
+                                                    <p className="text-xs text-gray-600">☁️ Sky</p>
+                                                    <p className="text-xs font-bold text-gray-800">{getWeatherDescription(weather.weather_code)}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="bg-gray-50 rounded p-2 text-center">
+                                            <p className="text-xs text-gray-500">Unavailable</p>
+                                        </div>
                                     )}
                                 </div>
                             </div>
                         </div>
-                    )}
+                    </div>
+
+                    {/* Map */}
+                    <div className="card p-4">
+                        <p className="text-sm font-semibold text-gray-700 mb-2">🗺️ Animal Location</p>
+                        {rescue.location?.lat && rescue.location?.lng ? (
+                            <div style={{ height: '350px', position: 'relative', zIndex: 1 }} className="rounded border border-gray-200 overflow-hidden">
+                                <MapContainer center={[rescue.location.lat, rescue.location.lng]} zoom={15} style={{ height: '100%', width: '100%' }}>
+                                    <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                                    <Marker position={[rescue.location.lat, rescue.location.lng]}>
+                                        <Popup><div className="p-1"><p className="text-xs font-bold capitalize">{animalType} spotted</p><p className="text-xs text-gray-600">{rescue.location.address}</p></div></Popup>
+                                    </Marker>
+                                </MapContainer>
+                            </div>
+                        ) : (
+                            <div style={{ height: '350px', position: 'relative', zIndex: 1 }} className="rounded border border-gray-200 overflow-hidden">
+                                <MapContainer center={[7.8731, 80.7718]} zoom={7} style={{ height: '100%', width: '100%' }}>
+                                    <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                                </MapContainer>
+                                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-10 pointer-events-none">
+                                    <p className="text-xs text-gray-600 bg-white px-2 py-1 rounded shadow">No specific location</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
-            {/* Confirm Dialog */}
             {showConfirmDialog && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-                        <h3 className="text-xl font-bold text-gray-800 mb-4">
-                            Confirm Animal Rescue
-                        </h3>
-                        <p className="text-gray-600 mb-4">
-                            Please confirm that this animal has been successfully rescued.
-                            You can optionally provide a contact number for follow-up.
-                        </p>
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
+                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-4">
+                        <h3 className="text-lg font-bold text-gray-800 mb-2">Confirm Rescue</h3>
+                        <p className="text-sm text-gray-600 mb-3">Confirm that this animal has been successfully rescued.</p>
 
-                        <div className="mb-6">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Contact Number (Optional)
-                            </label>
-                            <input
-                                type="tel"
-                                value={foundContact}
-                                onChange={(e) => setFoundContact(e.target.value)}
-                                placeholder="Enter contact number"
-                                className="input-field"
-                            />
-                            <p className="text-xs text-gray-500 mt-1">
-                                Provide an alternate contact if needed
-                            </p>
+                        <div className="space-y-2.5 mb-4">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Contact Number (Optional)</label>
+                                <input type="tel" value={foundContact} onChange={(e) => setFoundContact(e.target.value)} placeholder="Your contact number" className="input-field text-sm" />
+                            </div>
                         </div>
 
-                        <div className="flex gap-3">
-                            <button
-                                onClick={confirmMarkRescued}
-                                className="btn-primary flex-1"
-                            >
-                                Confirm Rescue
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setShowConfirmDialog(false);
-                                    setFoundContact('');
-                                }}
-                                className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                            >
-                                Cancel
-                            </button>
+                        <div className="flex gap-2">
+                            <button onClick={confirmMarkRescued} className="btn-primary flex-1 text-sm py-2">Confirm</button>
+                            <button onClick={() => setShowConfirmDialog(false)} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">Cancel</button>
                         </div>
                     </div>
                 </div>

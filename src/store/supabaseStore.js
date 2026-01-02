@@ -228,6 +228,30 @@ export const useDisasterStore = create((set, get) => ({
             throw error;
         }
     },
+
+    // Mark disaster as resolved
+    markResolvedByResponder: async (id, resolvedBy, responderNotes) => {
+        try {
+            set({ loading: true, error: null });
+            const updates = {
+                status: 'Resolved',
+                resolved_at: new Date().toISOString(),
+                resolved_by: resolvedBy,
+                responder_notes: responderNotes,
+                updated_at: new Date().toISOString()
+            };
+            await updateDocument(TABLES.DISASTERS, id, updates);
+            set((state) => ({
+                disasters: state.disasters.map(disaster =>
+                    disaster.id === id ? { ...disaster, ...updates } : disaster
+                ),
+                loading: false
+            }));
+        } catch (error) {
+            set({ error: error.message, loading: false });
+            throw error;
+        }
+    },
 }));
 
 // Animal Rescue Store

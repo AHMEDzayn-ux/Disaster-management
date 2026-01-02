@@ -169,26 +169,6 @@ function DisasterReportForm() {
                                 )}
                             </div>
                         </div>
-
-                        <div className="mt-4">
-                            <label className="block text-gray-700 font-medium mb-2">
-                                Description <span className="text-danger-500">*</span>
-                            </label>
-                            <textarea
-                                {...register('description', {
-                                    required: 'Description is required',
-                                    minLength: { value: 10, message: 'Minimum 10 characters' }
-                                })}
-                                className="input-field"
-                                rows="3"
-                                placeholder="Describe what happened, extent of damage, etc."
-                            />
-                            {errors.description && (
-                                <span className="text-danger-500 text-sm mt-1 block">
-                                    {errors.description.message}
-                                </span>
-                            )}
-                        </div>
                     </div>
 
                     {/* Photo Upload */}
@@ -397,6 +377,32 @@ function DisasterReportForm() {
                                     </span>
                                 )}
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Description - Moved to bottom */}
+                    <div>
+                        <h3 className="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">
+                            Description
+                        </h3>
+                        <div>
+                            <label className="block text-gray-700 font-medium mb-2">
+                                Description <span className="text-danger-500">*</span>
+                            </label>
+                            <textarea
+                                {...register('description', {
+                                    required: 'Description is required',
+                                    minLength: { value: 10, message: 'Minimum 10 characters' }
+                                })}
+                                className="input-field"
+                                rows="4"
+                                placeholder="Describe what happened, extent of damage, current situation, etc."
+                            />
+                            {errors.description && (
+                                <span className="text-danger-500 text-sm mt-1 block">
+                                    {errors.description.message}
+                                </span>
+                            )}
                         </div>
                     </div>
 

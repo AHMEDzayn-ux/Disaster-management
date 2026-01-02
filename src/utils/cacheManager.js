@@ -49,26 +49,27 @@ export const getCachedData = (table) => {
  * @param {number} total - Total count of records
  */
 export const setCachedData = (table, data, total) => {
+    const cacheKey = getCacheKey(table);
+    const cacheData = {
+        data,
+        total,
+        timestamp: Date.now()
+    };
+    
     try {
-        const cacheKey = getCacheKey(table);
-        const cacheData = {
-            data,
-            total,
-            timestamp: Date.now()
-        };
-        
         localStorage.setItem(cacheKey, JSON.stringify(cacheData));
         console.log(`✓ Cached ${data.length} items for ${table}`);
     } catch (error) {
         // If localStorage is full, clear old caches
         if (error.name === 'QuotaExceededError') {
-            console.warn('Cache storage full, clearing old caches...');
+            console.warn('💾 Cache storage full, clearing old caches...');
             clearExpiredCaches();
             // Try again
             try {
                 localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+                console.log(`✓ Cached ${data.length} items for ${table} after cleanup`);
             } catch (retryError) {
-                console.error('Failed to cache data even after cleanup:', retryError);
+                console.error('❌ Failed to cache data even after cleanup:', retryError);
             }
         } else {
             console.error(`Error caching data for ${table}:`, error);

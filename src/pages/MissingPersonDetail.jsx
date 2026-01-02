@@ -9,7 +9,7 @@ function MissingPersonDetail({ role: propRole }) {
     const { id } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
-    const { missingPersons, subscribeToMissingPersons, isInitialized } = useMissingPersonStore();
+    const { missingPersons, markFoundByResponder, subscribeToMissingPersons, isInitialized } = useMissingPersonStore();
 
     // Ensure data is loaded
     useEffect(() => {
@@ -25,6 +25,8 @@ function MissingPersonDetail({ role: propRole }) {
 
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
     const [foundContact, setFoundContact] = useState('');
+    const [weather, setWeather] = useState(null);
+    const [weatherLoading, setWeatherLoading] = useState(false);
 
     const person = missingPersons.find(p => p.id === id || p.id === parseInt(id));
 
@@ -35,6 +37,24 @@ function MissingPersonDetail({ role: propRole }) {
     const contactNumber = person?.contact_number || person?.contactNumber;
     const reportedAt = person?.reported_at || person?.reportedAt || person?.created_at;
     const foundByContact = person?.found_by_contact || person?.foundByContact;
+    const foundAt = person?.found_at || person?.foundAt;
+
+    // Fetch weather data
+    useEffect(() => {
+        if (lastSeenLocation?.lat && lastSeenLocation?.lng) {
+            setWeatherLoading(true);
+            fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lastSeenLocation.lat}&longitude=${lastSeenLocation.lng}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=auto`)
+                .then(res => res.json())
+                .then(data => {
+                    setWeather(data.current);
+                    setWeatherLoading(false);
+                })
+                .catch(err => {
+                    console.error('Weather fetch error:', err);
+                    setWeatherLoading(false);
+                });
+        }
+    }, [lastSeenLocation?.lat, lastSeenLocation?.lng]);
 
     // Show loading while data is being fetched
     if (!isInitialized) {
@@ -77,278 +97,264 @@ function MissingPersonDetail({ role: propRole }) {
     };
 
     const getStatusBadge = (status) => {
-        switch (status) {
-            case 'Active':
-                return <span className="px-3 py-1 rounded-full text-sm font-semibold bg-danger-100 text-danger-700">🔴 Active - Still Missing</span>;
-            case 'Resolved':
-                return <span className="px-3 py-1 rounded-full text-sm font-semibold bg-success-100 text-success-700">✅ Resolved - Person Found</span>;
-            default:
-                return <span className="px-3 py-1 rounded-full text-sm font-semibold bg-gray-100 text-gray-700">{status}</span>;
+        return status === 'Active'
+            ? <span className="px-3 py-1.5 rounded text-sm font-semibold bg-danger-100 text-danger-700">🔴 Active</span>
+            : <span className="px-3 py-1.5 rounded text-sm font-semibold bg-success-100 text-success-700">✅ Found</span>;
+    };
+
+    const getWeatherDescription = (code) => {
+        const weatherCodes = {
+            0: 'Clear', 1: 'Mainly Clear', 2: 'Partly Cloudy', 3: 'Overcast',
+            45: 'Foggy', 48: 'Foggy', 51: 'Light Drizzle', 53: 'Drizzle', 55: 'Heavy Drizzle',
+            61: 'Light Rain', 63: 'Rain', 65: 'Heavy Rain', 71: 'Light Snow', 73: 'Snow', 75: 'Heavy Snow',
+            80: 'Rain Showers', 81: 'Rain Showers', 82: 'Heavy Rain Showers', 95: 'Thunderstorm', 96: 'Thunderstorm', 99: 'Thunderstorm'
+        };
+        return weatherCodes[code] || 'Unknown';
+    };
+
+    const handleMarkFound = () => setShowConfirmDialog(true);
+
+    const confirmMarkFound = async () => {
+        try {
+            await markFoundByResponder(person.id, foundContact || null);
+            setShowConfirmDialog(false);
+            setFoundContact('');
+        } catch (error) {
+            console.error('Error marking person as found:', error);
+            alert('Failed to mark person as found. Please try again.');
         }
-    };
-
-    const handleMarkFound = () => {
-        setShowConfirmDialog(true);
-    };
-
-    const confirmMarkFound = () => {
-        markFoundByResponder(person.id, foundContact || null);
-        setShowConfirmDialog(false);
-        setFoundContact('');
     };
 
     const canMarkFound = role === 'responder' && person.status === 'Active';
 
     return (
-        <div className="container mx-auto px-4 py-6">
-            {/* Header */}
-            <div className="mb-6">
-                <button onClick={() => navigate(-1)} className="text-primary-600 hover:text-primary-700 mb-4 flex items-center gap-2">
-                    ← Back to List
-                </button>
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="container mx-auto px-3 sm:px-4 py-3">
+            {/* Header - Single Row */}
+            <div className="mb-3">
+                <div className="flex items-center gap-3">
+                    <span className="text-3xl sm:text-4xl">👤</span>
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-800">{person.name}</h1>
-                        <p className="text-gray-600">Report ID: #{person.id} • Reported {getTimeSince(reportedAt)}</p>
+                        <h1 className="text-xl sm:text-2xl font-bold text-gray-800 leading-tight">
+                            {person.name} <span className="text-xs sm:text-sm text-gray-500 font-normal ml-2 sm:ml-3">ID: #{person.id} • {reportedAt ? formatDate(reportedAt) : 'N/A'}</span>
+                        </h1>
                     </div>
-                    {getStatusBadge(person.status)}
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left Column - Photo & Basic Info */}
-                <div className="lg:col-span-1 space-y-6">
-                    {/* Photo */}
-                    {person.photo && (
-                        <div className="card">
-                            <h3 className="text-lg font-semibold text-gray-800 mb-4">Photo</h3>
-                            <img
-                                src={person.photo}
-                                alt={person.name || 'Missing Person'}
-                                className="w-full max-h-96 rounded-lg border-2 border-gray-200 shadow-md object-contain bg-gray-50"
-                                loading="lazy"
-                            />
-                        </div>
-                    )}
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+
+                {/* Left Column - Person Info & Contact */}
+                <div className="lg:col-span-5 space-y-3">
 
                     {/* Basic Information */}
-                    <div className="card">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Basic Information</h3>
-                        <div className="space-y-3">
+                    <div className="card p-5">
+                        <p className="text-sm font-semibold text-gray-700 mb-3">👤 Person Details</p>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-center mb-3">
+                            <div className="border-r border-gray-200">
+                                <p className="text-xs text-gray-500 mb-1">Age</p>
+                                <p className="text-base font-bold text-gray-800">{person.age || 'N/A'}</p>
+                            </div>
+                            <div className="border-r border-gray-200">
+                                <p className="text-xs text-gray-500 mb-1">Gender</p>
+                                <p className="text-base font-bold text-gray-800 capitalize">{person.gender || 'N/A'}</p>
+                            </div>
                             <div>
-                                <p className="text-sm text-gray-500">Full Name</p>
-                                <p className="font-medium text-gray-800">{person.name || 'Unknown'}</p>
+                                <p className="text-xs text-gray-500 mb-1">Status</p>
+                                <p className="text-sm font-bold text-gray-800">{getTimeSince(lastSeenDate)}</p>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <p className="text-sm text-gray-500">Age</p>
-                                    <p className="font-medium text-gray-800">{person.age || 'N/A'} {person.age ? 'years' : ''}</p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">Gender</p>
-                                    <p className="font-medium text-gray-800 capitalize">{person.gender}</p>
-                                </div>
-                            </div>
-                            {person.description && (
-                                <div>
-                                    <p className="text-sm text-gray-500">Description</p>
-                                    <p className="font-medium text-gray-800">{person.description}</p>
-                                </div>
-                            )}
                         </div>
                     </div>
 
-                    {/* Reporter Contact */}
-                    <div className="card">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Reporter Contact</h3>
-                        <div className="space-y-3">
-                            <div>
-                                <p className="text-sm text-gray-500">Name</p>
-                                <p className="font-medium text-gray-800">{reporterName || 'N/A'}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-500">Phone Number</p>
-                                {contactNumber ? (
-                                    <a href={`tel:${contactNumber}`} className="font-medium text-primary-600 hover:text-primary-700">
-                                        📞 {contactNumber}
-                                    </a>
-                                ) : (
-                                    <p className="font-medium text-gray-800">N/A</p>
-                                )}
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-500">Reported At</p>
-                                <p className="font-medium text-gray-800">{formatDate(reportedAt)}</p>
-                            </div>
-                        </div>
-
-                        {foundByContact && (
-                            <div className="mt-4 pt-4 border-t border-gray-200">
-                                <h4 className="text-sm font-semibold text-success-700 mb-2">✓ Found - Alternate Contact</h4>
-                                <div>
-                                    <p className="text-sm text-gray-500">Contact Person</p>
-                                    <a href={`tel:${foundByContact}`} className="font-medium text-success-600 hover:text-success-700">
-                                        📞 {foundByContact}
-                                    </a>
-                                    <p className="text-xs text-gray-500 mt-1">Contact this number for more information</p>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Right Column - Details & Map */}
-                <div className="lg:col-span-2 space-y-6">
-                    {/* Last Seen Information */}
-                    <div className="card">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Last Seen Information</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <div>
-                                <p className="text-sm text-gray-500">Location</p>
-                                <p className="font-medium text-gray-800">📍 {lastSeenLocation?.address || 'Unknown'}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-500">Date & Time</p>
-                                <p className="font-medium text-gray-800">🕒 {formatDate(lastSeenDate)}</p>
-                                <p className="text-sm text-gray-600 mt-1">{getTimeSince(lastSeenDate)}</p>
-                            </div>
-                        </div>
-
-                        {/* Map */}
-                        {lastSeenLocation?.lat && lastSeenLocation?.lng && (
-                            <div className="h-64 rounded-lg overflow-hidden border-2 border-gray-200">
-                                <MapContainer
-                                    center={[lastSeenLocation.lat, lastSeenLocation.lng]}
-                                    zoom={15}
-                                    style={{ height: '100%', width: '100%' }}
-                                >
-                                    <TileLayer
-                                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                                    />
-                                    <Marker position={[lastSeenLocation.lat, lastSeenLocation.lng]}>
-                                        <Popup>
-                                            <strong>Last Seen Here</strong><br />
-                                            {lastSeenLocation.address}
-                                        </Popup>
-                                    </Marker>
-                                </MapContainer>
-                            </div>
-                        )}
+                    {/* Description */}
+                    <div className="card p-5 min-h-36">
+                        <p className="text-sm font-semibold text-gray-700 mb-3">📝 Description</p>
+                        <p className="text-sm text-gray-700 leading-relaxed">{person.description || 'No description provided'}</p>
                     </div>
 
                     {/* Additional Information */}
                     {person.additionalInfo && (
-                        <div className="card">
-                            <h3 className="text-lg font-semibold text-gray-800 mb-4">Additional Information</h3>
-                            <p className="text-gray-700">{person.additionalInfo}</p>
+                        <div className="card p-5">
+                            <p className="text-sm font-semibold text-gray-700 mb-3">ℹ️ Additional Info</p>
+                            <p className="text-sm text-gray-700 leading-relaxed">{person.additionalInfo}</p>
                         </div>
                     )}
 
-                    {/* Status Timeline */}
-                    <div className="card">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Status Timeline</h3>
-                        <div className="space-y-4">
-                            <div className="flex gap-4">
-                                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
-                                    <span className="text-primary-600">📝</span>
-                                </div>
+                    {/* Reporter Contact */}
+                    <div className="card p-5">
+                        <p className="text-sm font-semibold text-gray-700 mb-2">📞 Reporter Contact</p>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <p className="text-xs text-gray-500 mb-0.5">Name</p>
+                                <p className="text-sm font-medium text-gray-800">{reporterName || 'N/A'}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-500 mb-0.5">Phone</p>
+                                <p className="text-sm font-medium text-gray-800">{contactNumber || 'N/A'}</p>
+                            </div>
+                        </div>
+                        {foundByContact && (
+                            <div className="mt-3 pt-3 border-t border-gray-200">
+                                <p className="text-xs text-gray-500 mb-0.5">Found Contact</p>
+                                <p className="text-sm font-medium text-success-700">{foundByContact}</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Timeline */}
+                    <div className="card p-5">
+                        <p className="text-sm font-semibold text-gray-700 mb-2">⏱️ Timeline</p>
+                        <div className="space-y-2">
+                            <div className="flex gap-2.5 items-start">
+                                <div className="w-7 h-7 rounded-full bg-primary-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">1</div>
                                 <div className="flex-1">
-                                    <p className="font-medium text-gray-800">Report Filed</p>
-                                    <p className="text-sm text-gray-600">{formatDate(person.reportedAt)}</p>
-                                    <p className="text-xs text-gray-500">By {person.reporterName}</p>
+                                    <p className="text-sm font-semibold text-gray-800">Reported</p>
+                                    <p className="text-xs text-gray-600">{reportedAt ? formatDate(reportedAt) : 'N/A'} • {reporterName || 'Anonymous'}</p>
                                 </div>
                             </div>
-
-                            {person.foundAt && (
-                                <div className="flex gap-4">
-                                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-success-100 flex items-center justify-center">
-                                        <span className="text-success-600">✓</span>
-                                    </div>
+                            {foundAt && (
+                                <div className="flex gap-2.5 items-start">
+                                    <div className="w-7 h-7 rounded-full bg-success-500 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">✓</div>
                                     <div className="flex-1">
-                                        <p className="font-medium text-gray-800">Marked as Found</p>
-                                        <p className="text-sm text-gray-600">{formatDate(person.foundAt)}</p>
-                                        <p className="text-xs text-gray-500">Case resolved</p>
+                                        <p className="text-sm font-semibold text-gray-800">Found</p>
+                                        <p className="text-xs text-gray-600">{formatDate(foundAt)}</p>
                                     </div>
                                 </div>
                             )}
                         </div>
                     </div>
 
-                    {/* Action Buttons */}
-                    <div className="card bg-gray-50">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Actions</h3>
-                        <div className="flex flex-col sm:flex-row gap-3">
+                    {/* Status & Action Button */}
+                    <div className="card p-5">
+                        <div className="flex items-center gap-3">
+                            {getStatusBadge(person.status)}
                             {canMarkFound && (
-                                <button
-                                    onClick={handleMarkFound}
-                                    className="btn-primary flex-1"
-                                >
-                                    ✓ Mark as Found
-                                </button>
-                            )}
-
-                            {!canMarkFound && person.status !== 'Resolved' && (
-                                <p className="text-gray-600 text-center py-4">
-                                    {role === 'responder'
-                                        ? 'Person already marked as found'
-                                        : 'View only - Contact responders to update status'}
-                                </p>
-                            )}
-
-                            {person.status === 'Resolved' && (
-                                <div className="text-center py-4 text-success-600 font-medium">
-                                    ✅ This person has been found and the case is resolved
-                                </div>
+                                <button onClick={handleMarkFound} className="btn-primary py-2 px-5">Mark as Found</button>
                             )}
                         </div>
                     </div>
                 </div>
+
+                {/* Right Column - Photo & Map */}
+                <div className="lg:col-span-7 space-y-4">
+
+                    {/* Photo & Location Side by Side */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                        {/* Photo */}
+                        {person.photo && (
+                            <div className="card p-4">
+                                <p className="text-sm font-semibold text-gray-700 mb-2">📸 Photo</p>
+                                <div className="w-full h-64 rounded border border-gray-200 bg-gray-50 flex items-center justify-center">
+                                    <img
+                                        src={person.photo}
+                                        alt={person.name}
+                                        className="max-w-full max-h-full object-contain"
+                                        loading="lazy"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Last Seen & Weather */}
+                        <div className="card p-4">
+                            <p className="text-sm font-semibold text-gray-700 mb-2">📍 Last Seen & Weather</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {/* Location Column */}
+                                <div className="space-y-2">
+                                    <div>
+                                        <p className="text-xs text-gray-500 mb-0.5">Location</p>
+                                        <p className="text-sm text-gray-800">{lastSeenLocation?.address || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-gray-500 mb-0.5">Date & Time</p>
+                                        <p className="text-sm text-gray-800">{lastSeenDate ? formatDate(lastSeenDate) : 'N/A'}</p>
+                                    </div>
+                                </div>
+
+                                {/* Weather Column */}
+                                <div>
+                                    <p className="text-xs font-semibold text-gray-700 mb-1.5 flex items-center gap-1">
+                                        <span>🌤️</span> Current Weather
+                                    </p>
+                                    {weatherLoading ? (
+                                        <div className="flex items-center justify-center py-3">
+                                            <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary-600 border-t-transparent"></div>
+                                            <p className="text-xs text-gray-500 ml-2">Loading...</p>
+                                        </div>
+                                    ) : weather ? (
+                                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-2 border border-blue-100">
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div className="bg-white rounded p-1.5 border border-blue-100">
+                                                    <p className="text-xs text-gray-600">🌡️ Temp</p>
+                                                    <p className="text-base font-bold text-gray-800">{weather.temperature_2m}°C</p>
+                                                </div>
+                                                <div className="bg-white rounded p-1.5 border border-blue-100">
+                                                    <p className="text-xs text-gray-600">💧 Humidity</p>
+                                                    <p className="text-base font-bold text-gray-800">{weather.relative_humidity_2m}%</p>
+                                                </div>
+                                                <div className="bg-white rounded p-1.5 border border-blue-100">
+                                                    <p className="text-xs text-gray-600">💨 Wind</p>
+                                                    <p className="text-sm font-bold text-gray-800">{weather.wind_speed_10m} km/h</p>
+                                                </div>
+                                                <div className="bg-white rounded p-1.5 border border-blue-100">
+                                                    <p className="text-xs text-gray-600">☁️ Sky</p>
+                                                    <p className="text-xs font-bold text-gray-800">{getWeatherDescription(weather.weather_code)}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="bg-gray-50 rounded p-2 text-center">
+                                            <p className="text-xs text-gray-500">Unavailable</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Map */}
+                    <div className="card p-4">
+                        <p className="text-sm font-semibold text-gray-700 mb-2">🗺️ Last Seen Location</p>
+                        {lastSeenLocation?.lat && lastSeenLocation?.lng ? (
+                            <div style={{ height: '350px', position: 'relative', zIndex: 1 }} className="rounded border border-gray-200 overflow-hidden">
+                                <MapContainer center={[lastSeenLocation.lat, lastSeenLocation.lng]} zoom={15} style={{ height: '100%', width: '100%' }}>
+                                    <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                                    <Marker position={[lastSeenLocation.lat, lastSeenLocation.lng]}>
+                                        <Popup><div className="p-1"><p className="text-xs font-bold">Last Seen Here</p><p className="text-xs text-gray-600">{lastSeenLocation.address}</p></div></Popup>
+                                    </Marker>
+                                </MapContainer>
+                            </div>
+                        ) : (
+                            <div style={{ height: '350px', position: 'relative', zIndex: 1 }} className="rounded border border-gray-200 overflow-hidden">
+                                <MapContainer center={[7.8731, 80.7718]} zoom={7} style={{ height: '100%', width: '100%' }}>
+                                    <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                                </MapContainer>
+                                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-10 pointer-events-none">
+                                    <p className="text-xs text-gray-600 bg-white px-2 py-1 rounded shadow">No specific location</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
 
-            {/* Confirmation Dialog */}
             {showConfirmDialog && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
-                    <div className="bg-white rounded-lg p-6 max-w-md w-full">
-                        <h3 className="text-xl font-bold text-gray-800 mb-4">
-                            Mark as Found?
-                        </h3>
-                        <p className="text-gray-600 mb-4">
-                            This will mark {person.name} as found and change the status to "Resolved". Other responders can filter to view only active cases.
-                        </p>
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
+                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-4">
+                        <h3 className="text-lg font-bold text-gray-800 mb-2">Confirm Found</h3>
+                        <p className="text-sm text-gray-600 mb-3">Confirm that this person has been found.</p>
 
-                        <div className="mb-6">
-                            <label className="block text-gray-700 font-medium mb-2">
-                                Contact Number (Optional)
-                            </label>
-                            <input
-                                type="tel"
-                                value={foundContact}
-                                onChange={(e) => setFoundContact(e.target.value)}
-                                placeholder="07XXXXXXXX"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                            />
-                            <p className="text-xs text-gray-500 mt-1">
-                                Provide your contact in case the reporter needs to reach you
-                            </p>
+                        <div className="space-y-2.5 mb-4">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Contact Number (Optional)</label>
+                                <input type="tel" value={foundContact} onChange={(e) => setFoundContact(e.target.value)} placeholder="Your contact number" className="input-field text-sm" />
+                            </div>
                         </div>
 
-                        <div className="flex gap-3">
-                            <button
-                                onClick={confirmMarkFound}
-                                className="flex-1 bg-primary-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-600 transition-colors"
-                            >
-                                Confirm
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setShowConfirmDialog(false);
-                                    setFoundContact('');
-                                }}
-                                className="flex-1 border border-gray-300 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-                            >
-                                Cancel
-                            </button>
+                        <div className="flex gap-2">
+                            <button onClick={confirmMarkFound} className="btn-primary flex-1 text-sm py-2">Confirm</button>
+                            <button onClick={() => setShowConfirmDialog(false)} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">Cancel</button>
                         </div>
                     </div>
                 </div>
