@@ -427,8 +427,8 @@ function AdminEditCamp() {
                                     <div className="w-full bg-gray-200 rounded-full h-2">
                                         <div
                                             className={`h-2 rounded-full ${(formData.current_occupancy / formData.capacity) >= 0.9 ? 'bg-danger-500' :
-                                                    (formData.current_occupancy / formData.capacity) >= 0.7 ? 'bg-warning-500' :
-                                                        'bg-success-500'
+                                                (formData.current_occupancy / formData.capacity) >= 0.7 ? 'bg-warning-500' :
+                                                    'bg-success-500'
                                                 }`}
                                             style={{ width: `${Math.min((formData.current_occupancy / formData.capacity) * 100, 100)}%` }}
                                         />
