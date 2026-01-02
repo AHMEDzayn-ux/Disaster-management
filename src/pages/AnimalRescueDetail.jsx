@@ -144,7 +144,8 @@ function AnimalRescueDetail({ role: propRole }) {
                         <img
                             src={rescue.photo}
                             alt={rescue.animalType}
-                            className="w-full rounded-lg border-2 border-gray-200 shadow-md"
+                            className="w-full max-h-96 rounded-lg border-2 border-gray-200 shadow-md object-contain bg-gray-50"
+                            loading="lazy"
                         />
                     </div>
 

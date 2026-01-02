@@ -109,7 +109,12 @@ function DisasterReportDetail({ role: propRole }) {
                     {disaster.photo && (
                         <div className="card">
                             <h3 className="text-lg font-semibold text-gray-800 mb-4">Photo Evidence</h3>
-                            <img src={disaster.photo} alt={disaster.disasterType} className="w-full rounded-lg border-2 border-gray-200 shadow-md" />
+                            <img 
+                                src={disaster.photo} 
+                                alt={disaster.disasterType} 
+                                className="w-full max-h-96 rounded-lg border-2 border-gray-200 shadow-md object-contain bg-gray-50" 
+                                loading="lazy"
+                            />
                         </div>
                     )}
 

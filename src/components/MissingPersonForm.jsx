@@ -9,6 +9,7 @@ function MissingPersonForm() {
     const { addMissingPerson } = useMissingPersonStore();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitSuccess, setSubmitSuccess] = useState(false);
+    const [fadeOut, setFadeOut] = useState(false);
     const [photoPreview, setPhotoPreview] = useState(null);
 
     // Sample test photo (1x1 red pixel PNG)
@@ -84,11 +85,17 @@ function MissingPersonForm() {
 
             // Show success message and scroll to top
             setSubmitSuccess(true);
+            setFadeOut(false);
             window.scrollTo({ top: 0, behavior: 'smooth' });
             reset();
             setPhotoPreview(null);
 
-            setTimeout(() => setSubmitSuccess(false), 5000);
+            // Auto-dismiss with fade-out after 2.7 seconds
+            setTimeout(() => setFadeOut(true), 2700);
+            setTimeout(() => {
+                setSubmitSuccess(false);
+                setFadeOut(false);
+            }, 3000);
         } catch (error) {
             console.error('Error submitting missing person:', error);
             alert(`Failed to submit report: ${error.message}`);
@@ -105,7 +112,7 @@ function MissingPersonForm() {
                 </h2>
 
                 {submitSuccess && (
-                    <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-success-600 text-white px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3 animate-bounce">
+                    <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-success-600 text-white px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3 transition-all duration-300 ease-in-out ${fadeOut ? 'animate-fade-out' : 'animate-fade-in'}`}>
                         <span className="text-2xl">✅</span>
                         <div>
                             <p className="font-bold text-lg">Report Submitted Successfully!</p>

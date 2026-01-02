@@ -391,7 +391,8 @@ function AdminRecords() {
                                                 <img
                                                     src={detailModal.record.photo || detailModal.record.image || detailModal.record.photo_url || detailModal.record.image_url}
                                                     alt={getRecordDisplayName(detailModal.record)}
-                                                    className="w-full rounded-lg border-2 border-gray-200 shadow-md object-cover"
+                                                    className="w-full max-h-80 rounded-lg border-2 border-gray-200 shadow-md object-contain bg-white"
+                                                    loading="lazy"
                                                     onError={(e) => { e.target.style.display = 'none'; }}
                                                 />
                                             </div>

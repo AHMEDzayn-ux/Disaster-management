@@ -44,6 +44,20 @@ export default {
           900: '#14532d',
         },
       },
+      keyframes: {
+        'fade-in': {
+          '0%': { opacity: '0', transform: 'translate(-50%, -1rem)' },
+          '100%': { opacity: '1', transform: 'translate(-50%, 0)' }
+        },
+        'fade-out': {
+          '0%': { opacity: '1', transform: 'translate(-50%, 0)' },
+          '100%': { opacity: '0', transform: 'translate(-50%, -1rem)' }
+        }
+      },
+      animation: {
+        'fade-in': 'fade-in 0.3s ease-out',
+        'fade-out': 'fade-out 0.3s ease-out'
+      }
     },
   },
   plugins: [],
