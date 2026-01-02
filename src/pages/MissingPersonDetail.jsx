@@ -25,6 +25,8 @@ function MissingPersonDetail({ role: propRole }) {
 
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
     const [foundContact, setFoundContact] = useState('');
+    const [foundNotes, setFoundNotes] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [weather, setWeather] = useState(null);
     const [weatherLoading, setWeatherLoading] = useState(false);
 
@@ -38,6 +40,7 @@ function MissingPersonDetail({ role: propRole }) {
     const reportedAt = person?.reported_at || person?.reportedAt || person?.created_at;
     const foundByContact = person?.found_by_contact || person?.foundByContact;
     const foundAt = person?.found_at || person?.foundAt;
+    const status = person?.status || (foundAt ? 'Resolved' : 'Active'); // Default to Active if not set
 
     // Fetch weather data
     useEffect(() => {
@@ -115,17 +118,22 @@ function MissingPersonDetail({ role: propRole }) {
     const handleMarkFound = () => setShowConfirmDialog(true);
 
     const confirmMarkFound = async () => {
+        if (isSubmitting) return;
+        setIsSubmitting(true);
         try {
-            await markFoundByResponder(person.id, foundContact || null);
+            await markFoundByResponder(person.id, foundContact || null, foundNotes || null);
             setShowConfirmDialog(false);
             setFoundContact('');
+            setFoundNotes('');
         } catch (error) {
             console.error('Error marking person as found:', error);
             alert('Failed to mark person as found. Please try again.');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
-    const canMarkFound = role === 'responder' && person.status === 'Active';
+    const canMarkFound = role === 'responder' && status === 'Active';
 
     return (
         <div className="container mx-auto px-3 sm:px-4 py-3">
@@ -227,7 +235,7 @@ function MissingPersonDetail({ role: propRole }) {
                     {/* Status & Action Button */}
                     <div className="card p-5">
                         <div className="flex items-center gap-3">
-                            {getStatusBadge(person.status)}
+                            {getStatusBadge(status)}
                             {canMarkFound && (
                                 <button onClick={handleMarkFound} className="btn-primary py-2 px-5">Mark as Found</button>
                             )}
@@ -350,11 +358,22 @@ function MissingPersonDetail({ role: propRole }) {
                                 <label className="block text-xs font-medium text-gray-700 mb-1">Contact Number (Optional)</label>
                                 <input type="tel" value={foundContact} onChange={(e) => setFoundContact(e.target.value)} placeholder="Your contact number" className="input-field text-sm" />
                             </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Notes (Optional)</label>
+                                <textarea value={foundNotes} onChange={(e) => setFoundNotes(e.target.value)} placeholder="Additional details about finding the person..." rows="3" className="input-field text-sm" />
+                            </div>
                         </div>
 
                         <div className="flex gap-2">
-                            <button onClick={confirmMarkFound} className="btn-primary flex-1 text-sm py-2">Confirm</button>
-                            <button onClick={() => setShowConfirmDialog(false)} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">Cancel</button>
+                            <button onClick={confirmMarkFound} disabled={isSubmitting} className="btn-primary flex-1 text-sm py-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                {isSubmitting ? (
+                                    <span className="flex items-center justify-center gap-2">
+                                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                                        Processing...
+                                    </span>
+                                ) : 'Confirm'}
+                            </button>
+                            <button onClick={() => { setShowConfirmDialog(false); setFoundContact(''); setFoundNotes(''); }} disabled={isSubmitting} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm disabled:opacity-50 disabled:cursor-not-allowed">Cancel</button>
                         </div>
                     </div>
                 </div>

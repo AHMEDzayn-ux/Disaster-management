@@ -34,11 +34,14 @@ export const useMissingPersonStore = create((set, get) => ({
         const unsubscribeFn = await subscribeToTable(
             TABLES.MISSING_PERSONS,
             (persons, appendMode = false) => {
+                // Ensure persons is always an array
+                const safePersons = Array.isArray(persons) ? persons : [];
+                
                 if (appendMode) {
                     // Append new data, filtering out duplicates
                     set((state) => {
                         const existingIds = new Set(state.missingPersons.map(p => p.id));
-                        const newPersons = persons.filter(p => !existingIds.has(p.id));
+                        const newPersons = safePersons.filter(p => !existingIds.has(p.id));
                         return { 
                             missingPersons: [...state.missingPersons, ...newPersons]
                         };
@@ -46,7 +49,7 @@ export const useMissingPersonStore = create((set, get) => ({
                 } else {
                     // Replace all data
                     set({ 
-                        missingPersons: persons, 
+                        missingPersons: safePersons, 
                         loading: false, 
                         error: null, 
                         isInitialized: true 
@@ -126,12 +129,13 @@ export const useMissingPersonStore = create((set, get) => ({
     },
 
     // Mark as found by responder
-    markFoundByResponder: async (id, foundByContact) => {
+    markFoundByResponder: async (id, foundByContact, foundNotes) => {
         try {
             const updates = {
                 status: 'Resolved',
                 found_at: new Date().toISOString(),
                 found_by_contact: foundByContact,
+                found_notes: foundNotes,
                 updated_at: new Date().toISOString()
             };
             await updateDocument(TABLES.MISSING_PERSONS, id, updates);
@@ -166,17 +170,20 @@ export const useDisasterStore = create((set, get) => ({
         const unsubscribeFn = await subscribeToTable(
             TABLES.DISASTERS,
             (disasters, appendMode = false) => {
+                // Ensure disasters is always an array
+                const safeDisasters = Array.isArray(disasters) ? disasters : [];
+                
                 if (appendMode) {
                     set((state) => {
                         const existingIds = new Set(state.disasters.map(d => d.id));
-                        const newDisasters = disasters.filter(d => !existingIds.has(d.id));
+                        const newDisasters = safeDisasters.filter(d => !existingIds.has(d.id));
                         return { 
                             disasters: [...state.disasters, ...newDisasters]
                         };
                     });
                 } else {
                     set({ 
-                        disasters, 
+                        disasters: safeDisasters, 
                         loading: false, 
                         error: null, 
                         isInitialized: true 
@@ -294,17 +301,20 @@ export const useAnimalRescueStore = create((set, get) => ({
         const unsubscribeFn = await subscribeToTable(
             TABLES.ANIMAL_RESCUES,
             (rescues, appendMode = false) => {
+                // Ensure rescues is always an array
+                const safeRescues = Array.isArray(rescues) ? rescues : [];
+                
                 if (appendMode) {
                     set((state) => {
                         const existingIds = new Set(state.animalRescues.map(r => r.id));
-                        const newRescues = rescues.filter(r => !existingIds.has(r.id));
+                        const newRescues = safeRescues.filter(r => !existingIds.has(r.id));
                         return { 
                             animalRescues: [...state.animalRescues, ...newRescues]
                         };
                     });
                 } else {
                     set({ 
-                        animalRescues: rescues, 
+                        animalRescues: safeRescues, 
                         loading: false, 
                         error: null, 
                         isInitialized: true 
@@ -379,12 +389,13 @@ export const useAnimalRescueStore = create((set, get) => ({
     },
 
     // Mark as rescued by responder
-    markFoundByResponder: async (id, foundByContact) => {
+    markFoundByResponder: async (id, foundByContact, foundNotes) => {
         try {
             const updates = {
                 status: 'Resolved',
                 found_at: new Date().toISOString(),
                 found_by_contact: foundByContact,
+                found_notes: foundNotes,
                 updated_at: new Date().toISOString()
             };
             await updateDocument(TABLES.ANIMAL_RESCUES, id, updates);
@@ -419,17 +430,20 @@ export const useCampStore = create((set, get) => ({
         const unsubscribeFn = await subscribeToTable(
             TABLES.CAMPS,
             (camps, appendMode = false) => {
+                // Ensure camps is always an array
+                const safeCamps = Array.isArray(camps) ? camps : [];
+                
                 if (appendMode) {
                     set((state) => {
                         const existingIds = new Set(state.camps.map(c => c.id));
-                        const newCamps = camps.filter(c => !existingIds.has(c.id));
+                        const newCamps = safeCamps.filter(c => !existingIds.has(c.id));
                         return { 
                             camps: [...state.camps, ...newCamps]
                         };
                     });
                 } else {
                     set({ 
-                        camps, 
+                        camps: safeCamps, 
                         loading: false, 
                         error: null, 
                         isInitialized: true 

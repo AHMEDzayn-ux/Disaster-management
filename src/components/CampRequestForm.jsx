@@ -32,15 +32,18 @@ function CampRequestForm() {
     const navigate = useNavigate();
     const [submitting, setSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
+    const [gpsDetecting, setGpsDetecting] = useState(false);
+    const [gpsError, setGpsError] = useState(null);
     const [formData, setFormData] = useState({
-        camp_name: '',
         district: '',
         ds_division: '',
-        estimated_capacity: '',
-        address: '',
+        village_area: '',
         nearby_landmark: '',
-        latitude: '',
-        longitude: '',
+        estimated_capacity: '',
+        urgency_level: 'medium',
+        special_needs: '',
+        latitude: null,
+        longitude: null,
         facilities_needed: [],
         reason: '',
         requester_name: '',
@@ -63,22 +66,54 @@ function CampRequestForm() {
         }));
     };
 
+    const detectLocation = () => {
+        if (!navigator.geolocation) {
+            setGpsError('GPS is not supported by your device');
+            return;
+        }
+
+        setGpsDetecting(true);
+        setGpsError(null);
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setFormData(prev => ({
+                    ...prev,
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude
+                }));
+                setGpsDetecting(false);
+            },
+            (error) => {
+                setGpsDetecting(false);
+                setGpsError('Unable to detect location. Please enter manually.');
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSubmitting(true);
 
         try {
+            // Generate simple camp name from location
+            const generatedCampName = `Relief Camp Request - ${formData.village_area || formData.district}`;
+
             const { error } = await supabase
                 .from('camp_requests')
                 .insert({
-                    camp_name: formData.camp_name,
+                    camp_name: generatedCampName,
                     district: formData.district,
                     ds_division: formData.ds_division || null,
+                    village_area: formData.village_area || null,
                     estimated_capacity: parseInt(formData.estimated_capacity),
-                    address: formData.address,
+                    address: formData.village_area || formData.district,
                     nearby_landmark: formData.nearby_landmark || null,
-                    latitude: formData.latitude ? parseFloat(formData.latitude) : null,
-                    longitude: formData.longitude ? parseFloat(formData.longitude) : null,
+                    latitude: formData.latitude,
+                    longitude: formData.longitude,
+                    urgency_level: formData.urgency_level,
+                    special_needs: formData.special_needs || null,
                     facilities_needed: formData.facilities_needed,
                     reason: formData.reason,
                     requester_name: formData.requester_name,
@@ -148,28 +183,13 @@ function CampRequestForm() {
                 {/* Form */}
                 <div className="bg-white rounded-xl shadow-md p-6 md:p-8">
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* Camp Details Section */}
+                        {/* Basic Information Section */}
                         <div>
                             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                                <span>⛺</span> Proposed Camp Information
+                                <span>📋</span> Basic Information
                             </h3>
 
                             <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Proposed Camp Name *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="camp_name"
-                                        value={formData.camp_name}
-                                        onChange={handleChange}
-                                        className="input-field"
-                                        placeholder="e.g., Community Relief Camp - Kelaniya"
-                                        required
-                                    />
-                                </div>
-
                                 <div className="grid md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -198,7 +218,7 @@ function CampRequestForm() {
                                             value={formData.ds_division}
                                             onChange={handleChange}
                                             className="input-field"
-                                            placeholder="e.g., Kelaniya DS Division"
+                                            placeholder="e.g., Kelaniya"
                                         />
                                     </div>
                                 </div>
@@ -213,10 +233,29 @@ function CampRequestForm() {
                                         value={formData.estimated_capacity}
                                         onChange={handleChange}
                                         className="input-field"
-                                        placeholder="e.g., 200"
+                                        placeholder="Approximate number of people needing shelter"
                                         min="1"
                                         required
                                     />
+                                    <p className="text-xs text-gray-500 mt-1">Approximate count is fine</p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Urgency Level *
+                                    </label>
+                                    <select
+                                        name="urgency_level"
+                                        value={formData.urgency_level}
+                                        onChange={handleChange}
+                                        className="input-field"
+                                        required
+                                    >
+                                        <option value="low">🟢 Low - Can wait 1-2 days</option>
+                                        <option value="medium">🟡 Medium - Need within 24 hours</option>
+                                        <option value="high">🟠 High - Need within 12 hours</option>
+                                        <option value="critical">🔴 Critical - Immediate help needed</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -224,27 +263,58 @@ function CampRequestForm() {
                         {/* Location Section */}
                         <div className="border-t pt-6">
                             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                                <span>📍</span> Proposed Location
+                                <span>📍</span> Location Information
                             </h3>
 
                             <div className="space-y-4">
+                                {/* GPS Auto-Detect */}
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <div className="flex items-start justify-between mb-2">
+                                        <div>
+                                            <p className="font-medium text-gray-800 mb-1">📱 Auto-Detect Your Location</p>
+                                            <p className="text-sm text-gray-600">Use your device's GPS for accurate location</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={detectLocation}
+                                            disabled={gpsDetecting}
+                                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium disabled:opacity-50"
+                                        >
+                                            {gpsDetecting ? '🔄 Detecting...' : '📍 Detect GPS'}
+                                        </button>
+                                    </div>
+                                    {formData.latitude && formData.longitude && (
+                                        <div className="bg-green-50 border border-green-200 rounded p-2 mt-2">
+                                            <p className="text-sm text-green-800">✅ Location detected successfully</p>
+                                        </div>
+                                    )}
+                                    {gpsError && (
+                                        <div className="bg-amber-50 border border-amber-200 rounded p-2 mt-2">
+                                            <p className="text-sm text-amber-800">⚠️ {gpsError}</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Manual Location Description */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Location Address *
+                                        Village / Area Name *
                                     </label>
-                                    <textarea
-                                        name="address"
-                                        value={formData.address}
+                                    <input
+                                        type="text"
+                                        name="village_area"
+                                        value={formData.village_area}
                                         onChange={handleChange}
-                                        className="input-field h-20"
-                                        placeholder="Complete address or nearby landmark where the camp can be set up"
+                                        className="input-field"
+                                        placeholder="e.g., Kelaniya North, Maligawatta"
                                         required
                                     />
+                                    <p className="text-xs text-gray-500 mt-1">Name of your village or locality</p>
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Nearby Landmark
+                                        Nearby Landmark *
                                     </label>
                                     <input
                                         type="text"
@@ -252,43 +322,10 @@ function CampRequestForm() {
                                         value={formData.nearby_landmark}
                                         onChange={handleChange}
                                         className="input-field"
-                                        placeholder="e.g., Near Kelaniya Temple / School playground"
+                                        placeholder="e.g., Near Kelaniya Temple / Main junction / Community center"
+                                        required
                                     />
-                                </div>
-
-                                <div className="grid md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Latitude
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="latitude"
-                                            value={formData.latitude}
-                                            onChange={handleChange}
-                                            className="input-field"
-                                            placeholder="e.g., 6.9271"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Longitude
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="longitude"
-                                            value={formData.longitude}
-                                            onChange={handleChange}
-                                            className="input-field"
-                                            placeholder="e.g., 79.8612"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
-                                    <p className="text-sm text-blue-800">
-                                        ⚠️ Location coordinates are optional for the public. Admin will verify and finalize them.
-                                    </p>
+                                    <p className="text-xs text-gray-500 mt-1">Well-known place like temple, mosque, church, school, hospital, or major junction</p>
                                 </div>
                             </div>
                         </div>
@@ -315,17 +352,40 @@ function CampRequestForm() {
                             </div>
                         </div>
 
+                        {/* Special Needs */}
+                        <div className="border-t pt-6">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                                <span>❗</span> Special Needs
+                            </h3>
+                            <textarea
+                                name="special_needs"
+                                value={formData.special_needs}
+                                onChange={handleChange}
+                                className="input-field h-24"
+                                placeholder="Mention any special circumstances:
+• Number of children or infants
+• Elderly or disabled persons
+• Pregnant women
+• People with medical conditions
+• Injured persons needing immediate medical care"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">This helps authorities prioritize and prepare appropriate resources</p>
+                        </div>
+
                         {/* Reason */}
                         <div className="border-t pt-6">
                             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                                <span>📝</span> Reason for Request
+                                <span>📝</span> Describe the Situation *
                             </h3>
                             <textarea
                                 name="reason"
                                 value={formData.reason}
                                 onChange={handleChange}
                                 className="input-field h-28"
-                                placeholder="Briefly explain the situation (e.g., flood affected area, evacuation count, urgent needs)"
+                                placeholder="Brief description:
+• What happened? (flood, landslide, fire, etc.)
+• Current condition of affected people
+• Why is a relief camp needed urgently?"
                                 required
                             />
                         </div>

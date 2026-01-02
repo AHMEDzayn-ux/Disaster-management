@@ -65,7 +65,7 @@ function AnimalRescueForm() {
                 reporter_name: data.reporterName,
                 contact_number: data.contactNumber,
                 photo: photoPreview,
-                status: 'Pending'
+                status: 'Active'
             };
 
             await addAnimalRescue(newReport);

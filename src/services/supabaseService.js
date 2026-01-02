@@ -87,10 +87,12 @@ export const getAllDocuments = async (table, options = {}) => {
         const { data, error, count } = await query;
 
         if (error) throw error;
-        return { data: data || [], total: count };
+        // Ensure data is always an array
+        return { data: Array.isArray(data) ? data : [], total: count || 0 };
     } catch (error) {
         console.error(`Error getting all documents from ${table}:`, error);
-        throw error;
+        // Return empty array instead of throwing to prevent UI breaks
+        return { data: [], total: 0 };
     }
 };
 
@@ -148,7 +150,32 @@ export const subscribeToTable = async (table, callback) => {
         // Use cached data immediately - instant load!
         callback(cachedResult.data || []);
         
-        // Still subscribe to real-time updates in background
+        // ALWAYS fetch fresh data in background to ensure we have the latest
+        (async () => {
+            try {
+                const { data: freshData, count, error } = await supabase
+                    .from(table)
+                    .select('*', { count: 'exact' })
+                    .order('created_at', { ascending: false });
+                
+                if (error) {
+                    console.error(`Error fetching fresh ${table}:`, error);
+                    return;
+                }
+                
+                const allData = freshData || [];
+                // Only update if data is different
+                if (JSON.stringify(allData) !== JSON.stringify(cachedResult.data)) {
+                    console.log(`✓ Fresh data loaded for ${table} (${allData.length} items)`);
+                    callback(allData, false); // false = replace mode
+                    setCachedData(table, allData, count);
+                }
+            } catch (err) {
+                console.error(`Background fetch error for ${table}:`, err);
+            }
+        })();
+        
+        // Still subscribe to real-time updates
         const subscription = supabase
             .channel(`${table}_changes`)
             .on('postgres_changes', 

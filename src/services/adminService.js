@@ -136,6 +136,55 @@ export const secureApproveCampRequest = async (requestId, campData) => {
 };
 
 /**
+ * Secure Register Camp (Direct)
+ * =============================
+ * Directly registers a camp without a public request
+ * Uses the same secure-camp-approval edge function (action: 'register')
+ * to ensure identical insert logic as the approve flow
+ * 
+ * @param campData - The camp data to create
+ * @returns Promise with success/error status
+ */
+export const secureRegisterCamp = async (campData) => {
+    try {
+        // Use the same edge function as approval, just with action: 'register'
+        // This ensures identical insert logic and validation
+        const { data, error } = await supabase.functions.invoke('secure-camp-approval', {
+            body: {
+                action: 'register',
+                campData: campData
+            }
+        });
+
+        if (error) {
+            console.error('Edge function invoke error:', error);
+            throw new Error(error.message || 'Registration operation failed');
+        }
+
+        if (data?.error) {
+            console.error('Server returned error:', data);
+            const errorMsg = data.details 
+                ? `${data.error} (${data.details})` 
+                : data.error;
+            throw new Error(errorMsg);
+        }
+
+        return {
+            success: true,
+            message: data.message || 'Camp registered successfully',
+            camp: data.result?.camp
+        };
+
+    } catch (error) {
+        console.error('Secure registration error:', error);
+        return {
+            success: false,
+            error: error.message || 'Failed to register camp'
+        };
+    }
+};
+
+/**
  * Secure Reject Camp Request
  * ===========================
  * Rejects a camp request with reason
@@ -172,47 +221,6 @@ export const secureRejectCampRequest = async (requestId, rejectionReason) => {
         return {
             success: false,
             error: error.message || 'Failed to reject camp request'
-        };
-    }
-};
-
-/**
- * Secure Register Camp
- * ====================
- * Registers a new camp directly (admin action)
- * 
- * @param campData - The camp data to create
- * @param reason - Optional reason for registration
- * @returns Promise with success/error status
- */
-export const secureRegisterCamp = async (campData, reason = '') => {
-    try {
-        const { data, error } = await supabase.functions.invoke('secure-camp-registration', {
-            body: {
-                campData,
-                reason
-            }
-        });
-
-        if (error) {
-            throw new Error(error.message || 'Camp registration failed');
-        }
-
-        if (data?.error) {
-            throw new Error(data.error);
-        }
-
-        return {
-            success: true,
-            message: data.message,
-            camp: data.camp
-        };
-
-    } catch (error) {
-        console.error('Secure registration error:', error);
-        return {
-            success: false,
-            error: error.message || 'Failed to register camp'
         };
     }
 };

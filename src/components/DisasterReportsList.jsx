@@ -344,106 +344,121 @@ function DisasterReportsList({ role = 'responder' }) {
                     })}
                 </div>
             ) : (
-                <div className="card p-0 overflow-hidden">
-                    <div style={{ height: '600px' }}>
-                        <MapContainer
-                            center={[7.8731, 80.7718]}
-                            zoom={7}
-                            style={{ height: '100%', width: '100%' }}
-                            minZoom={6}
-                            maxZoom={18}
-                            maxBounds={[[5.5, 79.3], [10.2, 82.2]]}
-                            maxBoundsViscosity={1.0}
-                        >
-                            <TileLayer
-                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                            />
-
-                            <MapController districtFilter={districtFilter} />
-
-                            {districtFilter !== 'all' && districtBounds[districtFilter] && (
-                                <Rectangle
-                                    bounds={districtBounds[districtFilter]}
-                                    pathOptions={{
-                                        color: '#3B82F6',
-                                        weight: 3,
-                                        fillOpacity: 0.1,
-                                        dashArray: '10, 10'
-                                    }}
-                                />
-                            )}
-
-                            <MarkerClusterGroup chunkedLoading maxClusterRadius={30} disableClusteringAtZoom={9} removeOutsideVisibleBounds={false}>
-                                {filteredDisasters.filter(d => d.location && d.location.lat && d.location.lng).map((disaster) => {
-                                    const disasterType = disaster.disaster_type || disaster.disasterType || 'unknown';
-                                    const reporterName = disaster.reporter_name || disaster.reporterName;
-                                    const contactNumber = disaster.contact_number || disaster.contactNumber;
-
-                                    // Extra safety check
-                                    if (!disaster.location || !disaster.location.lat || !disaster.location.lng) {
-                                        return null;
-                                    }
-
-                                    return (
-                                        <Marker
-                                            key={disaster.id}
-                                            position={[disaster.location.lat, disaster.location.lng]}
-                                            icon={disaster.status === 'Active' ? activeIcon : resolvedIcon}
-                                        >
-                                            <Popup maxWidth={220} offset={[0, -10]}>
-                                                <div className="p-1">
-                                                    {disaster.photo && <LazyImage src={disaster.photo} alt={disasterType} className="w-full h-24 rounded mb-2" aspectRatio="16/9" />}
-                                                    <h3 className="font-bold text-sm capitalize mb-1">
-                                                        {getDisasterIcon(disasterType)} {disasterType.replace('-', ' ')}
-                                                    </h3>
-                                                    <div className="mb-2">
-                                                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${getSeverityBadge(disaster.severity).className}`}>
-                                                            {getSeverityBadge(disaster.severity).text}
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-xs text-gray-600 mb-1">📍 {disaster.location?.address || 'Unknown'}</p>
-                                                    <p className="text-xs text-gray-600 mb-1">👤 {reporterName || 'Unknown'}</p>
-                                                    <p className="text-xs text-gray-600 mb-2">☎️ {contactNumber || 'Unknown'}</p>
-                                                    <button onClick={() => handleDisasterClick(disaster)} className="btn-primary w-full text-xs py-1">
-                                                        View Details
-                                                    </button>
-                                                </div>
-                                            </Popup>
-                                        </Marker>
-                                    );
-                                }).filter(Boolean)}
-                            </MarkerClusterGroup>
-                        </MapContainer>
-                    </div>
-
-                    <div className="p-4 bg-gray-50 border-t border-gray-200">
-                        <p className="text-sm text-gray-600 mb-3">
-                            <span className="font-medium">ℹ️ Note:</span> Records without valid coordinates are not displayed on the map. Switch to Card View to see all reports.
-                        </p>
-                        <div className="flex flex-wrap gap-4 items-center justify-center">
-                            <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 bg-danger-500 rounded-full"></div>
-                                <span className="text-sm font-medium">Active ({activeCount})</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 bg-success-500 rounded-full"></div>
-                                <span className="text-sm font-medium">Resolved ({resolvedCount})</span>
+                <div>
+                    {/* Warning Note */}
+                    <div className="mb-4 bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg">
+                        <div className="flex items-start gap-3">
+                            <span className="text-2xl">⚠️</span>
+                            <div>
+                                <h4 className="text-sm font-semibold text-amber-900 mb-1">Map View Limitation</h4>
+                                <p className="text-sm text-amber-800">
+                                    Only disaster reports with valid location coordinates are displayed on the map.
+                                    <span className="font-medium"> Switch to Card View</span> to see all reports including those without map coordinates.
+                                </p>
                             </div>
                         </div>
                     </div>
-                </div>
+
+                    <div className="card p-0 overflow-hidden">
+                        <div style={{ height: '600px' }}>
+                            <MapContainer
+                                center={[7.8731, 80.7718]}
+                                zoom={7}
+                                style={{ height: '100%', width: '100%' }}
+                                minZoom={7}
+                                maxZoom={18}
+                                maxBounds={[[5.5, 79.3], [10.2, 82.2]]}
+                                maxBoundsViscosity={1.0}
+                            >
+                                <TileLayer
+                                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                />
+
+                                <MapController districtFilter={districtFilter} />
+
+                                {districtFilter !== 'all' && districtBounds[districtFilter] && (
+                                    <Rectangle
+                                        bounds={districtBounds[districtFilter]}
+                                        pathOptions={{
+                                            color: '#3B82F6',
+                                            weight: 3,
+                                            fillOpacity: 0.1,
+                                            dashArray: '10, 10'
+                                        }}
+                                    />
+                                )}
+
+                                <MarkerClusterGroup chunkedLoading maxClusterRadius={30} disableClusteringAtZoom={9} removeOutsideVisibleBounds={false}>
+                                    {filteredDisasters.filter(d => d.location && d.location.lat && d.location.lng).map((disaster) => {
+                                        const disasterType = disaster.disaster_type || disaster.disasterType || 'unknown';
+                                        const reporterName = disaster.reporter_name || disaster.reporterName;
+                                        const contactNumber = disaster.contact_number || disaster.contactNumber;
+
+                                        // Extra safety check
+                                        if (!disaster.location || !disaster.location.lat || !disaster.location.lng) {
+                                            return null;
+                                        }
+
+                                        return (
+                                            <Marker
+                                                key={disaster.id}
+                                                position={[disaster.location.lat, disaster.location.lng]}
+                                                icon={disaster.status === 'Active' ? activeIcon : resolvedIcon}
+                                            >
+                                                <Popup maxWidth={220} offset={[0, -10]}>
+                                                    <div className="p-1">
+                                                        {disaster.photo && <LazyImage src={disaster.photo} alt={disasterType} className="w-full h-24 rounded mb-2" aspectRatio="16/9" />}
+                                                        <h3 className="font-bold text-sm capitalize mb-1">
+                                                            {getDisasterIcon(disasterType)} {disasterType.replace('-', ' ')}
+                                                        </h3>
+                                                        <div className="mb-2">
+                                                            <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${getSeverityBadge(disaster.severity).className}`}>
+                                                                {getSeverityBadge(disaster.severity).text}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-xs text-gray-600 mb-1">📍 {disaster.location?.address || 'Unknown'}</p>
+                                                        <p className="text-xs text-gray-600 mb-1">👤 {reporterName || 'Unknown'}</p>
+                                                        <p className="text-xs text-gray-600 mb-2">☎️ {contactNumber || 'Unknown'}</p>
+                                                        <button onClick={() => handleDisasterClick(disaster)} className="btn-primary w-full text-xs py-1">
+                                                            View Details
+                                                        </button>
+                                                    </div>
+                                                </Popup>
+                                            </Marker>
+                                        );
+                                    }).filter(Boolean)}
+                                </MarkerClusterGroup>
+                            </MapContainer>
+                        </div>
+
+                        <div className="p-4 bg-gray-50 border-t border-gray-200">
+                            <p className="text-sm text-gray-600 mb-3">
+                                <span className="font-medium">ℹ️ Note:</span> Records without valid coordinates are not displayed on the map. Switch to Card View to see all reports.
+                            </p>
+                            <div className="flex flex-wrap gap-4 items-center justify-center">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 bg-danger-500 rounded-full"></div>
+                                    <span className="text-sm font-medium">Active ({activeCount})</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 bg-success-500 rounded-full"></div>
+                                    <span className="text-sm font-medium">Resolved ({resolvedCount})</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
             )}
 
-            {filteredDisasters.length === 0 && (
-                <div className="card text-center py-12">
-                    <p className="text-gray-500 text-lg">No disaster reports found matching your criteria</p>
-                </div>
-            )}
+                    {filteredDisasters.length === 0 && (
+                        <div className="card text-center py-12">
+                            <p className="text-gray-500 text-lg">No disaster reports found matching your criteria</p>
+                        </div>
+                    )}
 
-            <ScrollToTop />
-        </div>
-    );
+                    <ScrollToTop />
+                </div>
+            );
 }
 
-export default DisasterReportsList;
+            export default DisasterReportsList;

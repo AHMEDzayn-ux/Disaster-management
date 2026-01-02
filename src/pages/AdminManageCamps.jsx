@@ -2,14 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
-import { secureDeleteRecord, checkIsAdmin, DELETABLE_TABLES, SUPER_ADMIN_TABLES } from '../services/adminService';
-import DeleteConfirmModal from '../components/shared/DeleteConfirmModal';
+import { checkIsAdmin } from '../services/adminService';
 
 /**
  * Admin Manage Camps
  * ==================
  * Admin-only page to view and manage all camps
- * Super admins can delete approved camps if required by authorities
+ * Admins can mark camps as closed but cannot delete them to maintain records
  */
 function AdminManageCamps() {
     const navigate = useNavigate();
@@ -22,9 +21,9 @@ function AdminManageCamps() {
     // Admin status
     const [adminStatus, setAdminStatus] = useState({ isAdmin: false, role: null });
 
-    // Delete state
-    const [deleteModal, setDeleteModal] = useState({ isOpen: false, camp: null });
-    const [isDeleting, setIsDeleting] = useState(false);
+    // Close camp modal state
+    const [closeModal, setCloseModal] = useState({ isOpen: false, camp: null });
+    const [isClosing, setIsClosing] = useState(false);
 
     // Redirect if not authenticated
     useEffect(() => {
@@ -70,35 +69,31 @@ function AdminManageCamps() {
         }
     };
 
-    // Secure delete handler
-    const handleDeleteCamp = async (reason) => {
-        if (!deleteModal.camp) return;
+    // Mark camp as closed handler
+    const handleCloseCamp = async () => {
+        if (!closeModal.camp) return;
 
-        setIsDeleting(true);
+        setIsClosing(true);
         try {
-            const result = await secureDeleteRecord(
-                DELETABLE_TABLES.CAMPS,
-                deleteModal.camp.id,
-                reason
-            );
+            const { error } = await supabase
+                .from('camps')
+                .update({
+                    status: 'Closed',
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', closeModal.camp.id);
 
-            if (result.success) {
-                alert(`✅ ${result.message}`);
-                fetchCamps();
-                setDeleteModal({ isOpen: false, camp: null });
-            } else {
-                alert(`❌ Error: ${result.error}`);
-            }
+            if (error) throw error;
+
+            alert(`✅ Camp "${closeModal.camp.name}" has been marked as closed.`);
+            fetchCamps();
+            setCloseModal({ isOpen: false, camp: null });
         } catch (error) {
-            console.error('Delete error:', error);
-            alert(`❌ Failed to delete: ${error.message}`);
+            console.error('Close camp error:', error);
+            alert(`❌ Failed to close camp: ${error.message}`);
         } finally {
-            setIsDeleting(false);
+            setIsClosing(false);
         }
-    };
-
-    const openDeleteModal = (camp) => {
-        setDeleteModal({ isOpen: true, camp });
     };
 
     const formatDate = (dateString) => {
@@ -171,7 +166,7 @@ function AdminManageCamps() {
                         <div>
                             <h3 className="font-semibold text-blue-800">Secure Camp Management</h3>
                             <p className="text-sm text-blue-700">
-                                As an admin, you can manage and delete camps. All deletions are securely logged for audit purposes.
+                                As an admin, you can view and mark camps as closed. Camp records are maintained for historical tracking.
                             </p>
                         </div>
                     </div>
@@ -283,16 +278,33 @@ function AdminManageCamps() {
                                             View Details
                                         </Link>
 
-                                        {/* Delete button - available to all admins */}
+                                        {/* Edit Camp button - available to all admins */}
                                         {adminStatus.isAdmin && (
-                                            <button
-                                                onClick={() => openDeleteModal(camp)}
-                                                disabled={isDeleting}
-                                                className="px-3 py-2 bg-danger-600 hover:bg-danger-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-1"
-                                                title="Delete camp"
+                                            <Link
+                                                to={`/admin/edit-camp/${camp.id}`}
+                                                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+                                                title="Edit camp details"
                                             >
-                                                🗑️ Delete
+                                                ✏️ Edit
+                                            </Link>
+                                        )}
+
+                                        {/* Mark as Closed button - available to all admins */}
+                                        {adminStatus.isAdmin && camp.status?.toLowerCase() !== 'closed' && (
+                                            <button
+                                                onClick={() => setCloseModal({ isOpen: true, camp })}
+                                                disabled={isClosing}
+                                                className="px-3 py-2 bg-warning-600 hover:bg-warning-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-1"
+                                                title="Mark camp as closed"
+                                            >
+                                                ⛔ Mark as Closed
                                             </button>
+                                        )}
+
+                                        {camp.status?.toLowerCase() === 'closed' && (
+                                            <span className="px-3 py-2 bg-gray-200 text-gray-600 rounded-lg text-sm font-medium">
+                                                ✓ Closed
+                                            </span>
                                         )}
                                     </div>
                                 </div>
@@ -301,19 +313,38 @@ function AdminManageCamps() {
                     </div>
                 )}
 
-                {/* Delete Confirmation Modal */}
-                <DeleteConfirmModal
-                    isOpen={deleteModal.isOpen}
-                    onClose={() => setDeleteModal({ isOpen: false, camp: null })}
-                    onConfirm={handleDeleteCamp}
-                    itemName={deleteModal.camp?.camp_name || ''}
-                    itemType="Relief Camp"
-                    requireReason={true}
-                    isProcessing={isDeleting}
-                    warningMessage="⚠️ CRITICAL: This will permanently delete an approved relief camp. This action should only be taken if explicitly required by authorities. All affected people records may be impacted."
-                />
+                {/* Close Confirmation Modal */}
+                {closeModal.isOpen && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                        <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                            <h3 className="text-xl font-bold text-gray-800 mb-4">Mark Camp as Closed</h3>
+                            <p className="text-gray-600 mb-4">
+                                Are you sure you want to mark <strong>{closeModal.camp?.name}</strong> as closed?
+                            </p>
+                            <p className="text-sm text-gray-500 mb-6">
+                                The camp will be marked as closed but all records will be maintained for historical tracking.
+                            </p>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={handleCloseCamp}
+                                    disabled={isClosing}
+                                    className="btn-primary flex-1 disabled:opacity-50"
+                                >
+                                    {isClosing ? 'Closing...' : 'Yes, Mark as Closed'}
+                                </button>
+                                <button
+                                    onClick={() => setCloseModal({ isOpen: false, camp: null })}
+                                    disabled={isClosing}
+                                    className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </main>
-        </div>
+        </div >
     );
 }
 

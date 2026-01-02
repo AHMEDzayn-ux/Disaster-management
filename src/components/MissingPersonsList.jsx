@@ -337,149 +337,164 @@ function MissingPersonsList({ role = 'responder' }) {
 
             {/* Map View */}
             {viewMode === 'map' && (
-                <div className="h-[600px] rounded-lg overflow-hidden border-2 border-gray-200">
-                    <MapContainer
-                        center={[7.8731, 80.7718]} // Center of Sri Lanka
-                        zoom={7}
-                        minZoom={6}
-                        maxZoom={18}
-                        maxBounds={[
-                            [5.5, 79.3],  // Southwest corner (expanded)
-                            [10.2, 82.2]   // Northeast corner (expanded)
-                        ]}
-                        maxBoundsViscosity={1.0}
-                        style={{ height: '100%', width: '100%' }}
-                        scrollWheelZoom={true}
-                    >
-                        <TileLayer
-                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                        />
-
-                        <MapController districtFilter={districtFilter} allDistricts={allDistricts} />
-
-                        {/* Show district boundary when filtered */}
-                        {districtFilter !== 'all' && districtBounds[districtFilter] && (
-                            <Rectangle
-                                bounds={districtBounds[districtFilter]}
-                                pathOptions={{
-                                    color: '#3B82F6',
-                                    weight: 3,
-                                    opacity: 0.8,
-                                    dashArray: '10, 10',
-                                    fillColor: '#3B82F6',
-                                    fillOpacity: 0.1
-                                }}
-                            />
-                        )}
-
-                        <MarkerClusterGroup
-                            chunkedLoading
-                            maxClusterRadius={30}
-                            disableClusteringAtZoom={9}
-                            spiderfyOnMaxZoom={true}
-                            showCoverageOnHover={false}
-                            zoomToBoundsOnClick={true}
-                            removeOutsideVisibleBounds={false}
-                        >
-                            {filteredPersons.filter(p => {
-                                const location = p.last_seen_location || p.lastSeenLocation;
-                                return location && location.lat && location.lng;
-                            }).map((person) => {
-                                const location = person.last_seen_location || person.lastSeenLocation;
-                                const lastSeenDate = person.last_seen_date || person.lastSeenDate;
-
-                                // Extra safety check
-                                if (!location || !location.lat || !location.lng) {
-                                    return null;
-                                }
-
-                                return (
-                                    <Marker
-                                        key={person.id}
-                                        position={[location.lat, location.lng]}
-                                        icon={person.status === 'Active' ? activeIcon : resolvedIcon}
-                                    >
-                                        <Popup maxWidth={300}>
-                                            <div className="p-2">
-                                                <div className="flex gap-3 mb-3">
-                                                    <LazyImage
-                                                        src={person.photo}
-                                                        alt={person.name}
-                                                        className="w-16 h-16 rounded"
-                                                        aspectRatio="1/1"
-                                                    />
-                                                    <div className="flex-1">
-                                                        <h3 className="font-bold text-gray-800">{person.name}</h3>
-                                                        <p className="text-sm text-gray-600">Age: {person.age} | {person.gender}</p>
-                                                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold mt-1 ${getStatusBadge(person.status).className}`}>
-                                                            {getStatusBadge(person.status).text}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <p className="text-sm text-gray-700 mb-2">{person.description}</p>
-                                                <p className="text-xs text-gray-500 mb-3">
-                                                    📍 {location.address}<br />
-                                                    🕒 Last seen {getTimeSince(lastSeenDate)}
-                                                </p>
-                                                {person.found_by_contact && (
-                                                    <p className="text-xs text-success-600 font-medium mb-2">
-                                                        ✓ Contact: {person.found_by_contact}
-                                                    </p>
-                                                )}
-                                                <button
-                                                    onClick={() => {
-                                                        const detailPath = role === 'responder'
-                                                            ? `/missing-persons-list/${person.id}`
-                                                            : `/missing-persons/${person.id}`;
-                                                        navigate(detailPath);
-                                                    }}
-                                                    className="w-full bg-primary-500 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-primary-600 transition-colors"
-                                                >
-                                                    View Details
-                                                </button>
-                                            </div>
-                                        </Popup>
-                                    </Marker>
-                                );
-                            }).filter(Boolean)}
-                        </MarkerClusterGroup>
-                    </MapContainer>
-
-                    {/* Map Legend and Info */}
-                    <div className="mt-2">
-                        <p className="text-sm text-gray-600 mb-2 text-center">
-                            <span className="font-medium">ℹ️ Note:</span> Records without valid coordinates are not displayed on the map. Switch to Card View to see all reports.
-                        </p>
-                        <div className="flex justify-center gap-4 text-sm">
-                            <div className="flex items-center gap-2">
-                                <span className="text-danger-600">🔴</span>
-                                <span>Active ({filteredPersons.filter(p => p.status === 'Active').length})</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-success-600">🟢</span>
-                                <span>Resolved ({filteredPersons.filter(p => p.status === 'Resolved').length})</span>
-                            </div>
-                            <div className="text-gray-600">
-                                Total: {filteredPersons.filter(p => {
-                                    const location = p.last_seen_location || p.lastSeenLocation;
-                                    return location && location.lat && location.lng;
-                                }).length} on map
+                <div>
+                    {/* Warning Note */}
+                    <div className="mb-4 bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg">
+                        <div className="flex items-start gap-3">
+                            <span className="text-2xl">⚠️</span>
+                            <div>
+                                <h4 className="text-sm font-semibold text-amber-900 mb-1">Map View Limitation</h4>
+                                <p className="text-sm text-amber-800">
+                                    Only missing persons with valid location coordinates are displayed on the map.
+                                    <span className="font-medium"> Switch to Card View</span> to see all reports including those without map coordinates.
+                                </p>
                             </div>
                         </div>
                     </div>
-                </div>
+
+                    <div className="h-[600px] rounded-lg overflow-hidden border-2 border-gray-200">
+                        <MapContainer
+                            center={[7.8731, 80.7718]} // Center of Sri Lanka
+                            zoom={7}
+                            minZoom={7}
+                            maxZoom={18}
+                            maxBounds={[
+                                [5.5, 79.3],  // Southwest corner (expanded)
+                                [10.2, 82.2]   // Northeast corner (expanded)
+                            ]}
+                            maxBoundsViscosity={1.0}
+                            style={{ height: '100%', width: '100%' }}
+                            scrollWheelZoom={true}
+                        >
+                            <TileLayer
+                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                            />
+
+                            <MapController districtFilter={districtFilter} allDistricts={allDistricts} />
+
+                            {/* Show district boundary when filtered */}
+                            {districtFilter !== 'all' && districtBounds[districtFilter] && (
+                                <Rectangle
+                                    bounds={districtBounds[districtFilter]}
+                                    pathOptions={{
+                                        color: '#3B82F6',
+                                        weight: 3,
+                                        opacity: 0.8,
+                                        dashArray: '10, 10',
+                                        fillColor: '#3B82F6',
+                                        fillOpacity: 0.1
+                                    }}
+                                />
+                            )}
+
+                            <MarkerClusterGroup
+                                chunkedLoading
+                                maxClusterRadius={30}
+                                disableClusteringAtZoom={9}
+                                spiderfyOnMaxZoom={true}
+                                showCoverageOnHover={false}
+                                zoomToBoundsOnClick={true}
+                                removeOutsideVisibleBounds={false}
+                            >
+                                {filteredPersons.filter(p => {
+                                    const location = p.last_seen_location || p.lastSeenLocation;
+                                    return location && location.lat && location.lng;
+                                }).map((person) => {
+                                    const location = person.last_seen_location || person.lastSeenLocation;
+                                    const lastSeenDate = person.last_seen_date || person.lastSeenDate;
+
+                                    // Extra safety check
+                                    if (!location || !location.lat || !location.lng) {
+                                        return null;
+                                    }
+
+                                    return (
+                                        <Marker
+                                            key={person.id}
+                                            position={[location.lat, location.lng]}
+                                            icon={person.status === 'Active' ? activeIcon : resolvedIcon}
+                                        >
+                                            <Popup maxWidth={300}>
+                                                <div className="p-2">
+                                                    <div className="flex gap-3 mb-3">
+                                                        <LazyImage
+                                                            src={person.photo}
+                                                            alt={person.name}
+                                                            className="w-16 h-16 rounded"
+                                                            aspectRatio="1/1"
+                                                        />
+                                                        <div className="flex-1">
+                                                            <h3 className="font-bold text-gray-800">{person.name}</h3>
+                                                            <p className="text-sm text-gray-600">Age: {person.age} | {person.gender}</p>
+                                                            <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold mt-1 ${getStatusBadge(person.status).className}`}>
+                                                                {getStatusBadge(person.status).text}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-sm text-gray-700 mb-2">{person.description}</p>
+                                                    <p className="text-xs text-gray-500 mb-3">
+                                                        📍 {location.address}<br />
+                                                        🕒 Last seen {getTimeSince(lastSeenDate)}
+                                                    </p>
+                                                    {person.found_by_contact && (
+                                                        <p className="text-xs text-success-600 font-medium mb-2">
+                                                            ✓ Contact: {person.found_by_contact}
+                                                        </p>
+                                                    )}
+                                                    <button
+                                                        onClick={() => {
+                                                            const detailPath = role === 'responder'
+                                                                ? `/missing-persons-list/${person.id}`
+                                                                : `/missing-persons/${person.id}`;
+                                                            navigate(detailPath);
+                                                        }}
+                                                        className="w-full bg-primary-500 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-primary-600 transition-colors"
+                                                    >
+                                                        View Details
+                                                    </button>
+                                                </div>
+                                            </Popup>
+                                        </Marker>
+                                    );
+                                }).filter(Boolean)}
+                            </MarkerClusterGroup>
+                        </MapContainer>
+
+                        {/* Map Legend and Info */}
+                        <div className="mt-2">
+                            <p className="text-sm text-gray-600 mb-2 text-center">
+                                <span className="font-medium">ℹ️ Note:</span> Records without valid coordinates are not displayed on the map. Switch to Card View to see all reports.
+                            </p>
+                            <div className="flex justify-center gap-4 text-sm">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-danger-600">🔴</span>
+                                    <span>Active ({filteredPersons.filter(p => p.status === 'Active').length})</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-success-600">🟢</span>
+                                    <span>Resolved ({filteredPersons.filter(p => p.status === 'Resolved').length})</span>
+                                </div>
+                                <div className="text-gray-600">
+                                    Total: {filteredPersons.filter(p => {
+                                        const location = p.last_seen_location || p.lastSeenLocation;
+                                        return location && location.lat && location.lng;
+                                    }).length} on map
+                                </div>
+                            </div>
+                        </div>
+                    </div>
             )}
 
-            {filteredPersons.length === 0 && (
-                <div className="card text-center py-12">
-                    <p className="text-gray-500 text-lg">No missing persons found matching your criteria</p>
-                </div>
-            )}
+                    {filteredPersons.length === 0 && (
+                        <div className="card text-center py-12">
+                            <p className="text-gray-500 text-lg">No missing persons found matching your criteria</p>
+                        </div>
+                    )}
 
-            <ScrollToTop />
-        </div>
-    );
+                    <ScrollToTop />
+                </div>
+            );
 }
 
-export default MissingPersonsList;
+            export default MissingPersonsList;

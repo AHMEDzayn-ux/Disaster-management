@@ -4,7 +4,7 @@
  */
 
 const CACHE_PREFIX = 'disaster_mgmt_cache_';
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+const CACHE_DURATION = 1 * 60 * 1000; // 1 minute in milliseconds
 
 /**
  * Generate cache key for a table
@@ -26,7 +26,7 @@ export const getCachedData = (table) => {
         const { data, timestamp, total } = JSON.parse(cached);
         const now = Date.now();
         
-        // Check if cache is still valid (within 5 minutes)
+        // Check if cache is still valid (within 1 minute)
         if (now - timestamp < CACHE_DURATION) {
             console.log(`✓ Using cached data for ${table} (${data.length} items, ${Math.round((now - timestamp) / 1000)}s old)`);
             return { data, total };

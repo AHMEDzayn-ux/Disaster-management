@@ -31,6 +31,7 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AdminReviewRequests = lazy(() => import('./pages/AdminReviewRequests'));
 const AdminRegisterCamp = lazy(() => import('./pages/AdminRegisterCamp'));
 const AdminManageCamps = lazy(() => import('./pages/AdminManageCamps'));
+const AdminEditCamp = lazy(() => import('./pages/AdminEditCamp'));
 const AdminRecords = lazy(() => import('./pages/AdminRecords'));
 const CampRequestForm = lazy(() => import('./components/CampRequestForm'));
 
@@ -87,6 +88,7 @@ function App() {
             <Route path="/admin/review-requests" element={<ProtectedRoute><AdminReviewRequests /></ProtectedRoute>} />
             <Route path="/admin/register-camp" element={<ProtectedRoute><AdminRegisterCamp /></ProtectedRoute>} />
             <Route path="/admin/manage-camps" element={<ProtectedRoute><AdminManageCamps /></ProtectedRoute>} />
+            <Route path="/admin/edit-camp/:id" element={<ProtectedRoute><AdminEditCamp /></ProtectedRoute>} />
             <Route path="/admin/records" element={<ProtectedRoute><AdminRecords /></ProtectedRoute>} />
 
             {/* Bulk Test Data Generator */}
