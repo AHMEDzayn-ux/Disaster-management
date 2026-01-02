@@ -124,6 +124,27 @@ export const useMissingPersonStore = create((set, get) => ({
             throw error;
         }
     },
+
+    // Mark as found by responder
+    markFoundByResponder: async (id, foundByContact) => {
+        try {
+            const updates = {
+                status: 'Resolved',
+                found_at: new Date().toISOString(),
+                found_by_contact: foundByContact,
+                updated_at: new Date().toISOString()
+            };
+            await updateDocument(TABLES.MISSING_PERSONS, id, updates);
+            set((state) => ({
+                missingPersons: state.missingPersons.map(person =>
+                    person.id === id ? { ...person, ...updates } : person
+                )
+            }));
+        } catch (error) {
+            set({ error: error.message });
+            throw error;
+        }
+    },
 }));
 
 // Disaster Reports Store
@@ -353,6 +374,27 @@ export const useAnimalRescueStore = create((set, get) => ({
             }));
         } catch (error) {
             set({ error: error.message, loading: false });
+            throw error;
+        }
+    },
+
+    // Mark as rescued by responder
+    markFoundByResponder: async (id, foundByContact) => {
+        try {
+            const updates = {
+                status: 'Resolved',
+                found_at: new Date().toISOString(),
+                found_by_contact: foundByContact,
+                updated_at: new Date().toISOString()
+            };
+            await updateDocument(TABLES.ANIMAL_RESCUES, id, updates);
+            set((state) => ({
+                animalRescues: state.animalRescues.map(rescue =>
+                    rescue.id === id ? { ...rescue, ...updates } : rescue
+                )
+            }));
+        } catch (error) {
+            set({ error: error.message });
             throw error;
         }
     },
